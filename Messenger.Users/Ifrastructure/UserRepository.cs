@@ -1,0 +1,38 @@
+using Messenger.Users.Domain;
+using MongoDB.Driver;
+
+namespace Messenger.Users.Ifrastructure;
+
+public class UserRepository : IUserRepository
+{
+    private readonly IMongoCollection<User> _users;
+
+    public UserRepository(IMongoDatabase database)
+    {
+        _users = database.GetCollection<User>("users");
+    }
+
+    public Task<User?> Get(Guid id)
+    {
+        return _users
+            .Find(x => x.Id == id)
+            .FirstOrDefaultAsync();
+    }
+
+    public Task<User?> GetByEmail(string email)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task Add(User user)
+    {
+        return _users.InsertOneAsync(user);
+    }
+
+    public Task Update(User user)
+    {
+        return _users.ReplaceOneAsync(
+            x => x.Id == user.Id,
+            user);
+    }
+}

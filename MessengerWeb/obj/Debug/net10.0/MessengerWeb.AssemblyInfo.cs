@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("MessengerWeb")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ca39136abfb8822098b704ec1e823a68442fc3c4")]
 [assembly: System.Reflection.AssemblyProductAttribute("MessengerWeb")]
 [assembly: System.Reflection.AssemblyTitleAttribute("MessengerWeb")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
