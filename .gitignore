@@ -100,3 +100,6 @@ Generated/
 
 # ASP.NET generated
 wwwroot/lib/
+
+*/obj/*
+*/obj
