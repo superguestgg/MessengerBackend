@@ -1,0 +1,19 @@
+# Build outputs and dependencies are produced inside the image.
+**/bin/
+**/obj/
+**/node_modules/
+frontend/dist/
+MessengerWeb/wwwroot/
+
+# Local frontend env files would override the same-domain API address.
+**/.env
+**/.env.*
+
+.git/
+.idea/
+.vs/
+.vscode/
+**/*.user
+**/TestResults/
+Dockerfile
+.dockerignore
