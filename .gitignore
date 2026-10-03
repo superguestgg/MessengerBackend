@@ -101,5 +101,8 @@ Generated/
 # ASP.NET generated
 wwwroot/lib/
 
+# Frontend build served by the backend (npm run build:host)
+MessengerWeb/wwwroot/
+
 # Frontend dev settings: only the local API URL, no secrets
 !frontend/.env.development

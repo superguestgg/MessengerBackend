@@ -207,4 +207,15 @@ public class ChatTests
         Assert.Equal("  indented\n", new MessageText("  indented\n").Value);
         Assert.Throws<DomainException>(() => new MessageText(new string('a', MessageText.MaxLength + 1)));
     }
+
+    [Fact]
+    public void ChatTitle_is_trimmed_and_limited()
+    {
+        var value = new string('a', ChatTitle.MaxLength);
+
+        Assert.Equal("Team", new ChatTitle("  Team ").Value);
+        Assert.Equal(value, new ChatTitle(" " + value + " ").Value);
+        Assert.Throws<DomainException>(() => new ChatTitle(value + "a"));
+        Assert.Throws<DomainException>(() => new ChatTitle("   "));
+    }
 }

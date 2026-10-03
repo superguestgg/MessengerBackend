@@ -11,6 +11,7 @@ npm ci               # установить зависимости
 npm run dev          # dev-сервер на http://localhost:5173
 npm run lint         # ESLint
 npm run build        # проверка типов и сборка в dist/
+npm run build:host   # то же, но в ../MessengerWeb/wwwroot — фронт раздаёт бэкенд
 npm run api:generate # пересоздать src/api/schema.d.ts из Swagger запущенного бэкенда
 ```
 
@@ -22,7 +23,7 @@ npm run api:generate # пересоздать src/api/schema.d.ts из Swagger �
 
 - `npm run dev` берёт его из `.env.development` (`http://localhost:5243`).
 - Для продакшен-сборки задайте переменную окружения: `VITE_API_URL=https://api.example.com npm run build`.
-- Пустое значение — API на том же домене, что и фронт (схема, где бэкенд раздаёт `dist/`).
+- Пустое значение — API на том же домене, что и фронт: так собирает `npm run build:host`, и фронт раздаёт бэкенд (см. [README](../README.md#фронтенд-с-того-же-домена)).
 
 ## Клиент API
 

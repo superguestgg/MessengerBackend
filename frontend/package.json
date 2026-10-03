@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:host": "tsc -b && vite build --outDir ../MessengerWeb/wwwroot --emptyOutDir",
     "lint": "eslint .",
     "preview": "vite preview",
     "api:generate": "openapi-typescript http://localhost:5243/swagger/v1/swagger.json -o src/api/schema.d.ts"

@@ -107,6 +107,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// The built frontend, if it is in wwwroot. Static files are public, so this goes before authentication,
+// and before routing: otherwise the fallback endpoints would take requests for existing files.
+app.UseStaticFiles(FrontendHosting.StaticFileOptions);
+
+app.UseRouting();
+
 app.UseCors();
 
 app.UseAuthentication();
@@ -119,5 +125,7 @@ app.MapControllers();
 
 // Covered by the fallback policy: only signed-in accounts reach the tools.
 app.MapMcp("/mcp");
+
+app.MapFrontendFallback();
 
 app.Run();

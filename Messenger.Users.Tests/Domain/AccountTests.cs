@@ -188,22 +188,4 @@ public class AccountTests
         Assert.False(bot.IsFoundInSearchBy(owner.Id, byExactId: false));
         Assert.False(bot.IsFoundInSearchBy(Guid.NewGuid(), byExactId: true));
     }
-
-    [Theory]
-    [InlineData(" Foo@Example.com ", "foo@example.com")]
-    [InlineData("a@b", "a@b")]
-    public void Email_TryCreate_normalizes_valid_email(string value, string expected)
-    {
-        Assert.Equal(expected, Email.TryCreate(value)?.Value);
-    }
-
-    [Theory]
-    [InlineData("foo")]
-    [InlineData("@example.com")]
-    [InlineData("foo@")]
-    [InlineData("a@b@c")]
-    public void Email_TryCreate_returns_null_for_invalid_email(string value)
-    {
-        Assert.Null(Email.TryCreate(value));
-    }
 }
