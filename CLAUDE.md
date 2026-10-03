@@ -46,6 +46,7 @@ npm run build:host   # сборка в MessengerWeb/wwwroot: фронт разд
 - `Messenger.Users.Contracts` — `IUsersApi` для других модулей; реализация в `Messenger.Users`.
 - `Messenger.Infrastructure.Mongo` — общая техника (`AddMongo()`): клиент, база, сериализатор `Guid`. Ничего не знает о предметной области.
 - `Messenger.<Module>` — модуль = bounded context, один проект с папками `Domain` / `Application` / `Infrastructure` и `<Module>Module.cs`. Делить модуль на несколько проектов **не нужно** — решение принято.
+- `Dockerfile` — образ с бэкендом и собранным фронтом, без MongoDB (база внешняя). Новый проект, на который ссылается `MessengerWeb`, впиши в слой restore (`COPY …csproj`), иначе образ не соберётся.
 
 ## Правила архитектуры
 

@@ -83,6 +83,25 @@ dotnet publish MessengerWeb -c Release         # wwwroot попадает в п�
 - неизвестный путь под `/api` и `/mcp` — 404 (без токена — 401, как и раньше), а не `index.html`;
 - отсутствующий файл (`/robots.txt`, `/old.js`) — 404.
 
+### Docker
+
+`Dockerfile` в корне собирает один образ: фронт (`npm run build:host`) и бэкенд, который его раздаёт. MongoDB в образ не входит — база подключается снаружи, например от хостинга.
+
+```bash
+docker build -t messenger .
+docker run -p 8080:8080 \
+  -e Mongo__ConnectionString="mongodb+srv://user:password@cluster.example.net" \
+  -e Mongo__DatabaseName=Messenger \
+  -e Jwt__SigningKey="случайная строка не короче 32 символов" \
+  messenger
+```
+
+- Приложение слушает `http` на порту 8080 и работает не от root. HTTPS снимает хостинг или прокси перед контейнером.
+- `Jwt__SigningKey` обязателен: без него контейнер не стартует. Секреты передавайте переменными окружения хостинга, а не в образе.
+- При старте создаются индексы, поэтому без доступной базы контейнер завершится с ошибкой. Перезапуск — на стороне хостинга.
+- Фронт на том же домене, CORS не нужен. Если фронт всё же на другом домене — `Cors__AllowedOrigins__0=https://…`.
+- Swagger в образе выключен (Production). Для `npm run api:generate` запускайте бэкенд локально.
+
 ## Структура решения
 
 ```
@@ -336,6 +355,7 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 3. Свои коллекции — имена в константах репозиториев.
 4. Если модуль нужен другим — проект `Messenger.<Module>.Contracts` с публичным API и интеграционными событиями. Сам модуль ссылается только на контракты других модулей.
 5. Подключить в `MessengerWeb/Program.cs` после `AddMongo()` и `AddMediator()`. Генератор Mediator в модуль не добавлять — он только в хосте.
+6. Добавить `.csproj` нового проекта в слой restore в `Dockerfile`.
 
 ## Ограничения и планы
 

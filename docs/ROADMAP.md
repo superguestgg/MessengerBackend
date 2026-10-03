@@ -102,6 +102,8 @@ Cookie не используются: нет CSRF и нет проблем с th
 
 nginx для обеих схем не обязателен.
 
+Docker: `Dockerfile` в корне собирает образ по схеме 2 (фронт внутри), MongoDB — внешняя, от хостинга.
+
 Сборка в GitHub Actions: один workflow собирает фронт (`npm ci && npm run build` в `frontend/`), при схеме 2 кладёт `frontend/dist` в `MessengerWeb/wwwroot`, затем `dotnet publish`. Изменение API и фронта под него — один коммит и один PR.
 
 ## План (MVP)
