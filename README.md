@@ -4,7 +4,7 @@
 
 Бэкенд мессенджера на .NET 10. Модульный монолит: одно приложение, разделённое на независимые модули, внутри модулей — DDD.
 
-Готовы модули **Users** (аккаунты людей и ботов, вход по JWT и токенам доступа, профили) и **Chats** (личные и групповые чаты, сообщения).
+Готовы модули **Users** (аккаунты людей и ботов, вход по JWT и токенам доступа, профили) и **Chats** (личные и групповые чаты, сообщения), MCP-сервер для агентов и веб-клиент в [`frontend/`](frontend/README.md).
 
 ## Стек
 
@@ -29,6 +29,7 @@ dotnet run --project MessengerWeb
 
 - API: `http://localhost:5243` (профиль `https` — ещё `https://localhost:7036`)
 - Swagger: `http://localhost:5243/swagger` (только в Development)
+- Фронтенд: `cd frontend && npm ci && npm run dev` → `http://localhost:5173`
 - Готовые запросы для Rider: [`MessengerWeb/MessengerWeb.http`](MessengerWeb/MessengerWeb.http)
 
 При старте приложение создаёт индексы в Mongo, поэтому без доступной базы оно не запустится.
@@ -268,6 +269,8 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 
 Без токена любой эндпоинт, кроме регистрации и входа, отвечает 401.
 
+Из Swagger фронтенд генерирует свой клиент (`npm run api:generate`), поэтому действия контроллеров возвращают `ActionResult<T>`: так в документе есть схемы ответов. Ненулевые поля помечаются обязательными (`RequireNonNullablePropertiesFilter`), `null` допускают только nullable-поля.
+
 | Метод | Путь | Описание | Ответы |
 |---|---|---|---|
 | `POST` | `/api/account/register` | `{ email, password }` → `{ accountId }` | 200, 400, 409 |
@@ -312,4 +315,4 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 - Нет редактирования и удаления сообщений, отметок о прочтении и real-time для фронта; новые сообщения — через `?after=N` или ожидание в конкретном чате.
 - Нет общего потока событий по всем чатам (`/api/updates`) — отложен до real-time.
 - Сигналы ожидания работают в пределах одного процесса; при нескольких экземплярах ответ придёт с задержкой до 5 с.
-- Впереди: фронтенд, real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).
+- Впереди: real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).
