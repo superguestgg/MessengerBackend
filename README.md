@@ -1,4 +1,6 @@
-# Messenger Backend
+# Messenger
+
+Монорепозиторий мессенджера: бэкенд на .NET 10 в корне, фронтенд на React в [`frontend/`](frontend/README.md).
 
 Бэкенд мессенджера на .NET 10. Модульный монолит: одно приложение, разделённое на независимые модули, внутри модулей — DDD.
 
@@ -48,6 +50,7 @@ dotnet run --project MessengerWeb
 
 ```
 Messenger.sln
+├── frontend                         — фронтенд: React + TypeScript + Vite (не входит в .sln)
 ├── MessengerWeb                     — хост: Program.cs, контроллеры, обработка ошибок
 ├── Messenger.Infrastructure.Mongo   — общее подключение к Mongo (AddMongo)
 └── Messenger.Users                  — модуль Users

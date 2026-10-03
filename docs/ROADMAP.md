@@ -6,9 +6,9 @@
 
 Простой мессенджер с личными и групповыми чатами, ботами и MCP-сервером. Главный сценарий: локальный агент подключается по MCP от имени аккаунта (бота или самого пользователя), пишет в чат и **ждёт ответа** от конкретного человека.
 
-Репозитории:
-- бэкенд — `superguestgg/MessengerBackend` (.NET 10, MongoDB);
-- фронтенд — `superguestgg/messenger-frontend` (React + TypeScript + Vite).
+Монорепозиторий `superguestgg/MessengerBackend`:
+- бэкенд — в корне (.NET 10, MongoDB);
+- фронтенд — `frontend/` (React + TypeScript + Vite). Перенесён из `superguestgg/messenger-frontend`, тот репозиторий больше не используется.
 
 ## Аккаунты: люди и боты — одна сущность
 
@@ -91,7 +91,7 @@ Cookie не используются: нет CSRF и нет проблем с th
 
 nginx для обеих схем не обязателен.
 
-Сборка в GitHub Actions: workflow бэкенда делает checkout обоих репозиториев (`actions/checkout` с `repository: superguestgg/messenger-frontend`), собирает фронт, при схеме 2 кладёт его в `wwwroot`, затем `dotnet publish`. Деплой после изменений во фронте — вручную (`workflow_dispatch`) или через `repository_dispatch` из фронт-репозитория. Открытый вопрос: перейти ли на монорепозиторий.
+Сборка в GitHub Actions: один workflow собирает фронт (`npm ci && npm run build` в `frontend/`), при схеме 2 кладёт `frontend/dist` в `MessengerWeb/wwwroot`, затем `dotnet publish`. Изменение API и фронта под него — один коммит и один PR.
 
 ## План (MVP)
 

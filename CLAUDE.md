@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Бэкенд мессенджера: .NET 10, ASP.NET Core, MongoDB, Mediator (source generator, не MediatR).
+Монорепозиторий мессенджера. Бэкенд (в корне): .NET 10, ASP.NET Core, MongoDB, Mediator (source generator, не MediatR). Фронтенд — `frontend/`: React + TypeScript + Vite.
 Модульный монолит, внутри модулей — DDD. Как и почему всё устроено — в [README.md](README.md); здесь — правила, которым новый код **обязан** следовать.
 
 Не отступай от этой архитектуры молча. Если задача не укладывается в правила — остановись и предложи вариант пользователю.
@@ -21,8 +21,18 @@ dotnet build Messenger.sln -m:1 -nodeReuse:false -p:UseSharedCompilation=false -
 
 Ожидаемое предупреждение: `MSG0005` для `AccountRegistered` (у события пока нет подписчиков). Других быть не должно.
 
+Фронтенд:
+
+```bash
+cd frontend
+npm ci
+npm run lint
+npm run build
+```
+
 ## Структура
 
+- `frontend` — фронтенд, отдельный npm-проект; в `.sln` не входит.
 - `MessengerWeb` — хост: `Program.cs`, контроллеры, `DomainExceptionHandler`. Бизнес-логики здесь нет.
 - `Messenger.Infrastructure.Mongo` — общая техника (`AddMongo()`): клиент, база, сериализатор `Guid`. Ничего не знает о предметной области.
 - `Messenger.<Module>` — модуль = bounded context, один проект с папками `Domain` / `Application` / `Infrastructure` и `<Module>Module.cs`. Делить модуль на несколько проектов **не нужно** — решение принято.
@@ -79,4 +89,5 @@ dotnet build Messenger.sln -m:1 -nodeReuse:false -p:UseSharedCompilation=false -
 
 - Коммить только по просьбе пользователя. Работай в ветке (`fix/...`, `refactor/...`), в `main` — fast-forward merge, когда пользователь попросит.
 - Сообщения коммитов — на английском: заголовок + список изменений.
-- `obj/`, `bin/`, `.idea/` не коммитятся.
+- `obj/`, `bin/`, `.idea/`, `node_modules/`, `dist/` не коммитятся.
+- Изменение API и фронта под него — в одной ветке и одном PR.
