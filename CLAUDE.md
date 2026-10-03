@@ -40,7 +40,7 @@ npm run build
 ## Структура
 
 - `frontend` — фронтенд, отдельный npm-проект; в `.sln` не входит.
-- `MessengerWeb` — хост: `Program.cs`, контроллеры, `DomainExceptionHandler`. Бизнес-логики здесь нет.
+- `MessengerWeb` — хост: `Program.cs`, контроллеры, MCP-инструменты (`Mcp/`), `DomainExceptionHandler`. Бизнес-логики здесь нет: и контроллеры, и MCP-инструменты только отправляют команды в Mediator.
 - `Messenger.<Module>.Tests` — unit-тесты модуля (xUnit); новые правила домена покрывай тестами там.
 - `Messenger.Users.Contracts` — `IUsersApi` для других модулей; реализация в `Messenger.Users`.
 - `Messenger.Infrastructure.Mongo` — общая техника (`AddMongo()`): клиент, база, сериализатор `Guid`. Ничего не знает о предметной области.

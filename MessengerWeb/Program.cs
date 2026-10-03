@@ -6,6 +6,8 @@ using Messenger.Infrastructure.Mongo;
 using Messenger.Users;
 using Messenger.Users.Application;
 using MessengerWeb;
+using MessengerWeb.Mcp;
+using ModelContextProtocol.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
 
@@ -37,6 +39,11 @@ builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetim
 
 builder.Services.AddUsers(builder.Configuration);
 builder.Services.AddChats();
+
+// MCP for agents at /mcp: stateless Streamable HTTP, the same bearer tokens as the REST API.
+builder.Services.AddMcpServer()
+    .WithHttpTransport(options => options.SessionMode = HttpServerSessionMode.Stateless)
+    .WithTools<MessengerTools>(MessengerTools.SerializerOptions);
 
 // Every endpoint needs a signed-in account unless it is marked [AllowAnonymous].
 builder.Services.AddAuthorizationBuilder()
@@ -104,5 +111,8 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Covered by the fallback policy: only signed-in accounts reach the tools.
+app.MapMcp("/mcp");
 
 app.Run();

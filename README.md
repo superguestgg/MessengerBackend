@@ -69,7 +69,7 @@ Rate limiting — `RateLimiting:AccountPermitsPerMinute` (по умолчани�
 ```
 Messenger.sln
 ├── frontend                         — фронтенд: React + TypeScript + Vite (не входит в .sln)
-├── MessengerWeb                     — хост: Program.cs, контроллеры, обработка ошибок
+├── MessengerWeb                     — хост: Program.cs, контроллеры, MCP-инструменты (Mcp/), обработка ошибок
 ├── Messenger.Infrastructure.Mongo   — общее подключение к Mongo (AddMongo)
 ├── Messenger.Users                  — модуль Users
 │   ├── Domain                       — агрегаты, value objects, события, интерфейсы репозиториев
@@ -174,6 +174,43 @@ graph TD
 - **Как будится.** `Message` поднимает `MessageSent`, обработчик дёргает `IChatSignals` — ожидающие в этом чате просыпаются сразу. Сигналы живут в памяти процесса (`InMemoryChatSignals`); на случай нескольких экземпляров есть опрос базы раз в 5 секунд.
 - **Ограничения.** Таймаут 0–50 с (меньше обычных 60 с у прокси), не больше 5 одновременных ожиданий на аккаунт (`WaitSlots`, сверх — 429), обрыв соединения освобождает место сразу.
 
+### MCP-сервер
+
+`/mcp` — MCP-сервер для агентов (официальный C# SDK `ModelContextProtocol.AspNetCore`, Streamable HTTP, без сессий). Аутентификация та же, что у REST API: `Authorization: Bearer <токен>`. Агент действует от имени владельца токена: токен бота — как бот, личный токен — как пользователь. Без токена — 401, инструменты не видны.
+
+| Инструмент | Что делает |
+|---|---|
+| `whoami` | кто я: id, бот ли, владелец, профиль |
+| `list_chats` | `{ chats }` — мои чаты, последние активные первыми |
+| `open_direct_chat` | `{ chatId }` личного чата с аккаунтом (бот — только с владельцем) |
+| `read_messages` | `{ messages }` — `after` / `before` / `limit`, как в REST |
+| `send_message` | отправить, вернёт `seq` — по нему потом ждать ответ |
+| `wait_for_reply` | ожидание с фильтрами `fromUserId` и `replyToSeq`; `{ messages, nextAfterSeq, timedOut }` |
+
+Инструменты — тонкие обёртки над теми же handler-ами Mediator, что и контроллеры (`MessengerWeb/Mcp/MessengerTools.cs`). Ошибки домена приходят агенту как ошибка инструмента с текстом причины (SDK при этом пишет их в лог уровнем error); остальные исключения — без подробностей. Результаты — структурированные (`outputSchema`); `null`-поля не выбрасываются, иначе строгие клиенты отвергают ответ.
+
+**Подключение к Claude Code** — сначала токен: для агента-бота `POST /api/bots`, для работы от своего имени `POST /api/tokens`. Затем:
+
+```bash
+claude mcp add --transport http messenger https://<хост>/mcp --header "Authorization: Bearer msg_..."
+```
+
+Или в `.mcp.json` проекта, с токеном из переменной окружения, а не в файле:
+
+```json
+{
+  "mcpServers": {
+    "messenger": {
+      "type": "http",
+      "url": "https://<хост>/mcp",
+      "headers": { "Authorization": "Bearer ${MESSENGER_TOKEN}" }
+    }
+  }
+}
+```
+
+Сценарий «агент спрашивает владельца»: `whoami` → `open_direct_chat(ownerId)` → `send_message` → `wait_for_reply(chatId, after = seq, fromUserId = ownerId, replyToSeq = seq)`; при `timedOut` — снова `wait_for_reply` с `after = nextAfterSeq`. Если у MCP-клиента таймаут вызова меньше 50 с, передавайте меньший `timeoutSeconds`.
+
 ### Ошибки и валидация
 
 Валидация в два уровня:
@@ -275,4 +312,4 @@ graph TD
 - Нет редактирования и удаления сообщений, отметок о прочтении и real-time для фронта; новые сообщения — через `?after=N` или ожидание в конкретном чате.
 - Нет общего потока событий по всем чатам (`/api/updates`) — отложен до real-time.
 - Сигналы ожидания работают в пределах одного процесса; при нескольких экземплярах ответ придёт с задержкой до 5 с.
-- Впереди: MCP-сервер, real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).
+- Впереди: фронтенд, real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).
