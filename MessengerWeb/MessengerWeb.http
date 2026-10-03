@@ -1,5 +1,6 @@
 @MessengerWeb_HostAddress = http://localhost:5243
 
+### Register: 200
 POST {{MessengerWeb_HostAddress}}/api/users/register
 Content-Type: application/json
 
@@ -7,6 +8,26 @@ Content-Type: application/json
   "email": "test@example.com",
   "password": "P@ssw0rd!",
   "displayName": "Test User"
+}
+
+### Same email in another case: 409
+POST {{MessengerWeb_HostAddress}}/api/users/register
+Content-Type: application/json
+
+{
+  "email": " TEST@Example.com ",
+  "password": "P@ssw0rd!",
+  "displayName": "Test User"
+}
+
+### Invalid input: 400
+POST {{MessengerWeb_HostAddress}}/api/users/register
+Content-Type: application/json
+
+{
+  "email": "not-an-email",
+  "password": "short",
+  "displayName": ""
 }
 
 ###

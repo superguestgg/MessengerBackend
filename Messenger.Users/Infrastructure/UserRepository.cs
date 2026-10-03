@@ -12,23 +12,32 @@ public class UserRepository : IUserRepository
         _users = database.GetCollection<User>("users");
     }
 
-    public Task<User?> Get(Guid id)
+    public async Task<User?> Get(Guid id)
     {
-        return _users
+        return await _users
             .Find(x => x.Id == id)
             .FirstOrDefaultAsync();
     }
 
-    public Task<User?> GetByEmail(string email)
+    public async Task<User?> GetByEmail(string email)
     {
-        return _users
+        return await _users
             .Find(x => x.Email == email)
             .FirstOrDefaultAsync();
     }
 
-    public Task Add(User user)
+    public async Task Add(User user)
     {
-        return _users.InsertOneAsync(user);
+        try
+        {
+            await _users.InsertOneAsync(user);
+        }
+        catch (MongoWriteException e)
+            when (e.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        {
+            // Two concurrent registrations passed the GetByEmail check; the unique index caught it.
+            throw new EmailAlreadyTakenException(user.Email);
+        }
     }
 
     public Task Update(User user)

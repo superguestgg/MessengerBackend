@@ -25,15 +25,17 @@ public sealed class RegisterUserHandler
         RegisterUserCommand request,
         CancellationToken cancellationToken)
     {
+        var email = User.NormalizeEmail(request.Email);
+
         var exists = await _userRepository
-            .GetByEmail(request.Email);
+            .GetByEmail(email);
 
         if (exists != null)
-            throw new Exception("Email already exists");
+            throw new EmailAlreadyTakenException(email);
 
 
         var user = User.Create(
-            request.Email,
+            email,
             _passwordHasher.Hash(request.Password));
 
 

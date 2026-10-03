@@ -24,7 +24,7 @@ public class UserProfile
     [BsonId]
     public Guid UserId { get; private set; }
 
-    public string DisplayName { get; private set; }
+    public string DisplayName { get; private set; } = null!;
 
     public Guid? AvatarId { get; private set; }
 
