@@ -18,7 +18,7 @@ public class ChatsController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> List()
+    public async Task<ActionResult<IReadOnlyList<ChatResult>>> List()
     {
         var result = await _mediator.Send(new GetChatsQuery(User.GetAccountId()));
 
@@ -26,7 +26,7 @@ public class ChatsController : ControllerBase
     }
 
     [HttpGet("{chatId:guid}")]
-    public async Task<IActionResult> Get(Guid chatId)
+    public async Task<ActionResult<ChatResult>> Get(Guid chatId)
     {
         var result = await _mediator.Send(new GetChatQuery(
             User.GetAccountId(),
@@ -37,7 +37,7 @@ public class ChatsController : ControllerBase
 
     // Returns the existing chat if the two accounts already have one.
     [HttpPost("direct")]
-    public async Task<IActionResult> CreateDirect(
+    public async Task<ActionResult<CreateChatResult>> CreateDirect(
         CreateDirectChatRequest request)
     {
         var result = await _mediator.Send(new CreateDirectChatCommand(
@@ -48,7 +48,7 @@ public class ChatsController : ControllerBase
     }
 
     [HttpPost("group")]
-    public async Task<IActionResult> CreateGroup(
+    public async Task<ActionResult<CreateChatResult>> CreateGroup(
         CreateGroupChatRequest request)
     {
         var result = await _mediator.Send(new CreateGroupChatCommand(
@@ -102,7 +102,7 @@ public class ChatsController : ControllerBase
     }
 
     [HttpGet("{chatId:guid}/messages")]
-    public async Task<IActionResult> GetMessages(
+    public async Task<ActionResult<IReadOnlyList<MessageResult>>> GetMessages(
         Guid chatId,
         [FromQuery] long? after,
         [FromQuery] long? before,
@@ -121,7 +121,7 @@ public class ChatsController : ControllerBase
     // Long polling: answers as soon as a matching message newer than "after" appears,
     // or with an empty list when the timeout runs out. Pass nextAfterSeq as "after" next time.
     [HttpGet("{chatId:guid}/messages/wait")]
-    public async Task<IActionResult> WaitForMessages(
+    public async Task<ActionResult<WaitForMessagesResult>> WaitForMessages(
         Guid chatId,
         [FromQuery, Required, Range(0, long.MaxValue)] long? after,
         [FromQuery] Guid? from,
@@ -142,7 +142,7 @@ public class ChatsController : ControllerBase
     }
 
     [HttpPost("{chatId:guid}/messages")]
-    public async Task<IActionResult> SendMessage(
+    public async Task<ActionResult<SendMessageResult>> SendMessage(
         Guid chatId,
         SendMessageRequest request)
     {

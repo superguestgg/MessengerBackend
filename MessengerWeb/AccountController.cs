@@ -18,7 +18,7 @@ public class AccountController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("register")]
-    public async Task<IActionResult> Register(
+    public async Task<ActionResult<RegisterAccountResult>> Register(
         RegisterAccountCommand command)
     {
         var result = await _mediator.Send(command);

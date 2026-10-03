@@ -18,11 +18,16 @@ public class ProfilesController : ControllerBase
 
 
     [HttpGet("{userId:guid}")]
-    public async Task<IActionResult> Get(Guid userId)
+    public async Task<ActionResult<ProfileResult>> Get(Guid userId)
     {
         var profile = await _mediator.Send(new GetProfileQuery(userId));
 
-        return profile == null ? NotFound() : Ok(profile);
+        if (profile == null)
+        {
+            return NotFound();
+        }
+
+        return Ok(profile);
     }
 
     // userId is the caller or one of the caller's bots.

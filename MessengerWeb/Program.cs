@@ -27,6 +27,11 @@ builder.Services.AddSwaggerGen(options =>
     {
         [new OpenApiSecuritySchemeReference("Bearer", document)] = []
     });
+
+    // Precise nullability and "required" for the frontend's generated client (npm run api:generate).
+    options.SupportNonNullableReferenceTypes();
+    options.UseAllOfToExtendReferenceSchemas();
+    options.SchemaFilter<RequireNonNullablePropertiesFilter>();
 });
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));

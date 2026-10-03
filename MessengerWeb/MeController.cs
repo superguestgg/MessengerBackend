@@ -16,7 +16,7 @@ public class MeController : ControllerBase
 
 
     [HttpGet]
-    public async Task<IActionResult> Get()
+    public async Task<ActionResult<MeResult>> Get()
     {
         var result = await _mediator.Send(new GetMeQuery(User.GetAccountId()));
 

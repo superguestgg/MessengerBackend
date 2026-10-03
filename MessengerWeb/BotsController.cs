@@ -18,7 +18,7 @@ public class BotsController : ControllerBase
 
 
     [HttpPost]
-    public async Task<IActionResult> Create(
+    public async Task<ActionResult<CreateBotResult>> Create(
         CreateBotRequest request)
     {
         var result = await _mediator.Send(new CreateBotCommand(
@@ -29,7 +29,7 @@ public class BotsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> List()
+    public async Task<ActionResult<IReadOnlyList<BotResult>>> List()
     {
         var result = await _mediator.Send(new GetBotsQuery(User.GetAccountId()));
 
@@ -37,7 +37,7 @@ public class BotsController : ControllerBase
     }
 
     [HttpPost("{botId:guid}/token")]
-    public async Task<IActionResult> ReissueToken(Guid botId)
+    public async Task<ActionResult<BotTokenResult>> ReissueToken(Guid botId)
     {
         var result = await _mediator.Send(new ReissueBotTokenCommand(
             User.GetAccountId(),

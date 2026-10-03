@@ -18,7 +18,7 @@ public class TokensController : ControllerBase
 
 
     [HttpPost]
-    public async Task<IActionResult> Issue(
+    public async Task<ActionResult<IssuedAccessTokenResult>> Issue(
         IssueTokenRequest request)
     {
         var result = await _mediator.Send(new IssueAccessTokenCommand(
@@ -29,7 +29,7 @@ public class TokensController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> List()
+    public async Task<ActionResult<IReadOnlyList<AccessTokenResult>>> List()
     {
         var result = await _mediator.Send(new GetAccessTokensQuery(User.GetAccountId()));
 

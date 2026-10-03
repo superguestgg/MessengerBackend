@@ -18,7 +18,7 @@ public class AuthController : ControllerBase
 
     [AllowAnonymous]
     [HttpPost("login")]
-    public async Task<IActionResult> Login(
+    public async Task<ActionResult<LoginResult>> Login(
         LoginCommand command)
     {
         var result = await _mediator.Send(command);
