@@ -1,53 +1,18 @@
 using Messenger.Users.Application;
 using Messenger.Users.Domain;
 using Messenger.Users.Infrastructure;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
-using MongoDB.Bson;
-using MongoDB.Bson.Serialization;
-using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
 namespace Messenger.Users;
 
 public static class UsersModule
 {
+    // Requires AddMongo() from Messenger.Infrastructure.Mongo to be called by the host.
     public static IServiceCollection AddUsers(
-        this IServiceCollection services,
-        IConfiguration configuration)
+        this IServiceCollection services)
     {
-        services.Configure<UsersOptions>(
-            configuration.GetSection(UsersOptions.SectionName));
-
-        // Driver 3.x refuses to serialize Guid until a representation is chosen.
-        BsonSerializer.TryRegisterSerializer(
-            new GuidSerializer(GuidRepresentation.Standard));
-        BsonSerializer.TryRegisterSerializer(new EmailSerializer());
-        BsonSerializer.TryRegisterSerializer(new DisplayNameSerializer());
-
-        services.AddSingleton<IMongoClient>(sp =>
-        {
-            var options = sp.GetRequiredService<
-                    IOptions<UsersOptions>>()
-                .Value;
-
-            return new MongoClient(
-                options.MongoConnectionString);
-        });
-
-
-        services.AddScoped<IMongoDatabase>(sp =>
-        {
-            var options = sp.GetRequiredService<
-                    IOptions<UsersOptions>>()
-                .Value;
-
-            var client = sp.GetRequiredService<IMongoClient>();
-
-            return client.GetDatabase(
-                options.DatabaseName);
-        });
+        UsersBsonMappings.Register();
 
 
         services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);

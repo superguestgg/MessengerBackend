@@ -14,7 +14,10 @@
         <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       </PackageReference>
       <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="10.0.9" />
-      <PackageReference Include="MongoDB.Driver" Version="3.10.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Messenger.Infrastructure.Mongo\Messenger.Infrastructure.Mongo.csproj" />
     </ItemGroup>
 
 </Project>

@@ -1,5 +1,3 @@
-using MongoDB.Bson.Serialization.Attributes;
-
 namespace Messenger.Users.Domain;
 
 public class UserProfile
@@ -38,7 +36,6 @@ public class UserProfile
         UpdatedAt = DateTime.UtcNow;
     }
 
-    [BsonId]
     public Guid UserId { get; private set; }
 
     public DisplayName DisplayName { get; private set; } = null!;

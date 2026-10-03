@@ -1,3 +1,4 @@
+using Messenger.Infrastructure.Mongo;
 using Messenger.Users;
 using MessengerWeb;
 
@@ -8,7 +9,8 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
-builder.Services.AddUsers(builder.Configuration);
+builder.Services.AddMongo(builder.Configuration);
+builder.Services.AddUsers();
 var app = builder.Build();
 
 await app.Services.InitializeUsers();
