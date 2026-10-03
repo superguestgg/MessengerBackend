@@ -29,12 +29,6 @@ export function displayName(name: string | null | undefined, id: string) {
   return name != null && name !== '' ? name : `Без имени · ${shortId(id)}`
 }
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-
-export function isUuid(value: string) {
-  return uuidPattern.test(value.trim())
-}
-
 const plurals = new Intl.PluralRules('ru-RU')
 
 // pluralize(3, ['участник', 'участника', 'участников']) → "3 участника"

@@ -31,7 +31,7 @@ export function chatTitle(chat: Chat, myId: string) {
   return other != null ? displayName(other.displayName, other.userId) : 'Личный чат'
 }
 
-// There is no user search in the API: people come from shared chats, plus the user's own bots.
+// People the user already knows: from shared chats, plus the user's own bots. Others are found by search.
 export function collectContacts(chats: Chat[], bots: Bot[], myId: string): Contact[] {
   const contacts = new Map<string, Contact>()
   for (const bot of bots) {

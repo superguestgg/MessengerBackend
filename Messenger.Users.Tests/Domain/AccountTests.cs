@@ -153,4 +153,57 @@ public class AccountTests
     {
         Assert.Throws<DomainException>(() => new AccessTokenName(new string('a', AccessTokenName.MaxLength + 1)));
     }
+
+    [Fact]
+    public void Search_finds_people_but_not_the_requester()
+    {
+        var user = RegisterUser();
+        var other = Account.Register(new Email("other@example.com"), "hash");
+
+        Assert.True(other.IsFoundInSearchBy(user.Id, byExactId: false));
+        Assert.False(user.IsFoundInSearchBy(user.Id, byExactId: false));
+        Assert.False(user.IsFoundInSearchBy(user.Id, byExactId: true));
+    }
+
+    [Fact]
+    public void Search_by_name_or_email_hides_someone_elses_bot()
+    {
+        var owner = RegisterUser();
+        var bot = owner.CreateBot(new DisplayName("Bot"));
+        var stranger = Guid.NewGuid();
+
+        Assert.True(bot.IsFoundInSearchBy(owner.Id, byExactId: false));
+        Assert.False(bot.IsFoundInSearchBy(stranger, byExactId: false));
+        Assert.True(bot.IsFoundInSearchBy(stranger, byExactId: true));
+    }
+
+    [Fact]
+    public void Search_never_finds_a_deleted_bot()
+    {
+        var owner = RegisterUser();
+        var bot = owner.CreateBot(new DisplayName("Bot"));
+
+        bot.DeleteBot(owner.Id, []);
+
+        Assert.False(bot.IsFoundInSearchBy(owner.Id, byExactId: false));
+        Assert.False(bot.IsFoundInSearchBy(Guid.NewGuid(), byExactId: true));
+    }
+
+    [Theory]
+    [InlineData(" Foo@Example.com ", "foo@example.com")]
+    [InlineData("a@b", "a@b")]
+    public void Email_TryCreate_normalizes_valid_email(string value, string expected)
+    {
+        Assert.Equal(expected, Email.TryCreate(value)?.Value);
+    }
+
+    [Theory]
+    [InlineData("foo")]
+    [InlineData("@example.com")]
+    [InlineData("foo@")]
+    [InlineData("a@b@c")]
+    public void Email_TryCreate_returns_null_for_invalid_email(string value)
+    {
+        Assert.Null(Email.TryCreate(value));
+    }
 }

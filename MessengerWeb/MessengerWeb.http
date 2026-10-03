@@ -62,6 +62,14 @@ Content-Type: application/json
 GET {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
 Authorization: Bearer {{jwt}}
 
+### Search by the start of a word in a name, an exact email or an account id: 200
+GET {{MessengerWeb_HostAddress}}/api/users/search?query=hel
+Authorization: Bearer {{jwt}}
+
+### Search query shorter than 2 characters: 400
+GET {{MessengerWeb_HostAddress}}/api/users/search?query=h
+Authorization: Bearer {{jwt}}
+
 ### Personal access token for an agent: 200, the token is shown only here
 POST {{MessengerWeb_HostAddress}}/api/tokens
 Authorization: Bearer {{jwt}}

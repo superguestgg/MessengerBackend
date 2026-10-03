@@ -11,6 +11,7 @@ export type Message = Schemas['MessageResult']
 export type Bot = Schemas['BotResult']
 export type AccessToken = Schemas['AccessTokenResult']
 export type LoginResult = Schemas['LoginResult']
+export type UserSearchResult = Schemas['UserSearchResult']
 
 // Empty means the API is served from the same origin as the frontend.
 export const apiUrl = (import.meta.env.VITE_API_URL ?? '').replace(/\/+$/, '')

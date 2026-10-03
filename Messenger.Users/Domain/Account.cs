@@ -100,6 +100,18 @@ public class Account : AggregateRoot
         throw new AccessDeniedException("Only the account itself or the bot owner can edit this profile.");
     }
 
+    // Search lists people and the requester's own bots. Someone else's bot is found only
+    // by its exact id: whoever has the id was given it, the same id opens a chat with it.
+    public bool IsFoundInSearchBy(
+        Guid requesterId,
+        bool byExactId)
+    {
+        if (!IsActive || requesterId == Id)
+            return false;
+
+        return byExactId || Type == AccountType.User || OwnerId == requesterId;
+    }
+
     public bool CanSignInWithPassword =>
         Type == AccountType.User && IsActive && PasswordHash != null;
 

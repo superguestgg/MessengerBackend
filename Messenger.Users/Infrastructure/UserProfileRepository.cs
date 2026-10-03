@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using Messenger.Users.Domain;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Messenger.Users.Infrastructure;
@@ -25,6 +27,25 @@ public sealed class UserProfileRepository : IUserProfileRepository
     {
         return await _collection
             .Find(Builders<UserProfile>.Filter.In(x => x.UserId, userIds))
+            .ToListAsync(cancellationToken);
+    }
+
+    // A regex scan without an index: fine while there are few users. At scale this needs
+    // a normalized name field or a search index, which would change the document shape.
+    public async Task<IReadOnlyList<UserProfile>> SearchByDisplayName(
+        string prefix,
+        int limit,
+        CancellationToken cancellationToken = default)
+    {
+        var escaped = Regex.Replace(prefix, @"[\\^$.|?*+()\[\]{}]", @"\$0");
+
+        // People type "е" for "ё": "петр" should find "Пётр".
+        var pattern = @"(^|\s)" + Regex.Replace(escaped, "[еёЕЁ]", "[её]");
+
+        return await _collection
+            .Find(Builders<UserProfile>.Filter.Regex(x => x.DisplayName, new BsonRegularExpression(pattern, "i")))
+            .Sort(Builders<UserProfile>.Sort.Ascending(x => x.DisplayName))
+            .Limit(limit)
             .ToListAsync(cancellationToken);
     }
 

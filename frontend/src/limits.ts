@@ -8,5 +8,6 @@ export const limits = {
   tokenNameMax: 64, // AccessTokenName.MaxLength
   chatTitleMax: 128, // ChatTitle.MaxLength
   messageMax: 4096, // MessageText.MaxLength
+  searchMin: 2, // SearchUsersQuery.MinLength; the max is emailMax
   pageSize: 50,
 }

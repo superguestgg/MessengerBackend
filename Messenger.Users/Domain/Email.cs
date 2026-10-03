@@ -6,17 +6,30 @@ public sealed record Email
 
     public Email(string value)
     {
-        var normalized = value.Trim().ToLowerInvariant();
+        var normalized = Normalize(value);
 
-        var at = normalized.IndexOf('@');
-
-        if (normalized.Length > MaxLength
-            || at <= 0
-            || at != normalized.LastIndexOf('@')
-            || at == normalized.Length - 1)
+        if (!IsValid(normalized))
             throw new DomainException($"'{value}' is not a valid email.");
 
         Value = normalized;
+    }
+
+    // For input that may legitimately be something else, such as a search query.
+    public static Email? TryCreate(string value)
+    {
+        return IsValid(Normalize(value)) ? new Email(value) : null;
+    }
+
+    private static string Normalize(string value) => value.Trim().ToLowerInvariant();
+
+    private static bool IsValid(string normalized)
+    {
+        var at = normalized.IndexOf('@');
+
+        return normalized.Length <= MaxLength
+            && at > 0
+            && at == normalized.LastIndexOf('@')
+            && at != normalized.Length - 1;
     }
 
     public string Value { get; }
