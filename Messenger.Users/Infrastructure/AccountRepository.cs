@@ -29,6 +29,14 @@ public class AccountRepository : IAccountRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Account>> GetBotsByOwner(Guid ownerId, CancellationToken cancellationToken = default)
+    {
+        return await _accounts
+            .Find(x => x.OwnerId == ownerId && x.Status != AccountStatus.Deleted)
+            .SortBy(x => x.CreatedAt)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task Add(Account account, CancellationToken cancellationToken = default)
     {
         try
@@ -39,7 +47,7 @@ public class AccountRepository : IAccountRepository
             when (e.WriteError.Category == ServerErrorCategory.DuplicateKey)
         {
             // Two concurrent registrations passed the GetByEmail check; the unique index caught it.
-            throw new EmailAlreadyTakenException(account.Email);
+            throw new EmailAlreadyTakenException(account.Email!);
         }
     }
 

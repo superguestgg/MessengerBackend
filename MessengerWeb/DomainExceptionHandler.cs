@@ -22,6 +22,9 @@ public sealed class DomainExceptionHandler : IExceptionHandler
         {
             EmailAlreadyTakenException => (StatusCodes.Status409Conflict, "Email already taken"),
             AccountNotFoundException => (StatusCodes.Status404NotFound, "Account not found"),
+            AccessTokenNotFoundException => (StatusCodes.Status404NotFound, "Access token not found"),
+            InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Invalid credentials"),
+            AccessDeniedException => (StatusCodes.Status403Forbidden, "Access denied"),
             DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             _ => (0, null)
         };

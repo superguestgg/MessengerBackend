@@ -4,6 +4,8 @@ public interface IUserProfileRepository
 {
     Task<UserProfile?> Get(Guid userId, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<UserProfile>> GetMany(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default);
+
     // Insert or replace: a profile is created and edited by the same operation.
     Task Save(UserProfile profile, CancellationToken cancellationToken = default);
 }

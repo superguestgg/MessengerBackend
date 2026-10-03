@@ -27,14 +27,30 @@ Content-Type: application/json
   "password": "short"
 }
 
+### Login: 200, copy accessToken from the response (401 on wrong email or password)
+POST {{MessengerWeb_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "P@ssw0rd!"
+}
+
 ###
+@jwt = paste-access-token-from-login
 @accountId = 00000000-0000-0000-0000-000000000000
+
+### Who am I: 200 (401 without a token)
+GET {{MessengerWeb_HostAddress}}/api/me
+Authorization: Bearer {{jwt}}
 
 ### Profile before it is filled in: 404
 GET {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
+Authorization: Bearer {{jwt}}
 
-### Create or update profile: 204 (404 if the account does not exist)
+### Create or update own profile: 204 (403 for someone else's profile)
 PUT {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
+Authorization: Bearer {{jwt}}
 Content-Type: application/json
 
 {
@@ -44,5 +60,55 @@ Content-Type: application/json
 
 ### Profile after: 200
 GET {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
+Authorization: Bearer {{jwt}}
+
+### Personal access token for an agent: 200, the token is shown only here
+POST {{MessengerWeb_HostAddress}}/api/tokens
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "name": "my agent"
+}
+
+### My personal tokens, without secrets
+GET {{MessengerWeb_HostAddress}}/api/tokens
+Authorization: Bearer {{jwt}}
+
+###
+@tokenId = 00000000-0000-0000-0000-000000000000
+
+### Revoke a personal token: 204
+DELETE {{MessengerWeb_HostAddress}}/api/tokens/{{tokenId}}
+Authorization: Bearer {{jwt}}
+
+### Create a bot: 200, copy botId and token
+POST {{MessengerWeb_HostAddress}}/api/bots
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "displayName": "Helper Bot"
+}
+
+### My bots
+GET {{MessengerWeb_HostAddress}}/api/bots
+Authorization: Bearer {{jwt}}
+
+###
+@botId = 00000000-0000-0000-0000-000000000000
+@botToken = msg_paste-bot-token
+
+### The bot is an account too: same /api/me with its token
+GET {{MessengerWeb_HostAddress}}/api/me
+Authorization: Bearer {{botToken}}
+
+### Reissue the bot token: 200, the previous token stops working
+POST {{MessengerWeb_HostAddress}}/api/bots/{{botId}}/token
+Authorization: Bearer {{jwt}}
+
+### Delete the bot: 204, its tokens stop working
+DELETE {{MessengerWeb_HostAddress}}/api/bots/{{botId}}
+Authorization: Bearer {{jwt}}
 
 ###

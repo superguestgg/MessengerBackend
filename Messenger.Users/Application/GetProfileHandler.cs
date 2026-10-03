@@ -24,11 +24,6 @@ public sealed class GetProfileHandler
         if (profile == null)
             return null;
 
-        return new ProfileResult(
-            profile.UserId,
-            profile.DisplayName.Value,
-            profile.AvatarId,
-            profile.Bio,
-            profile.UpdatedAt);
+        return ProfileResult.From(profile);
     }
 }
