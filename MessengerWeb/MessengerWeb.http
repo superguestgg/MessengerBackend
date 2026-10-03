@@ -112,3 +112,85 @@ DELETE {{MessengerWeb_HostAddress}}/api/bots/{{botId}}
 Authorization: Bearer {{jwt}}
 
 ###
+@otherUserId = 00000000-0000-0000-0000-000000000000
+
+### Direct chat: 200 { chatId }; the same chatId again for the same pair
+POST {{MessengerWeb_HostAddress}}/api/chats/direct
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "userId": "{{otherUserId}}"
+}
+
+### Group chat: 200 { chatId }
+POST {{MessengerWeb_HostAddress}}/api/chats/group
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "title": "Team",
+  "memberIds": ["{{otherUserId}}"]
+}
+
+### My chats, most recently active first
+GET {{MessengerWeb_HostAddress}}/api/chats
+Authorization: Bearer {{jwt}}
+
+###
+@chatId = 00000000-0000-0000-0000-000000000000
+
+### One chat with members (404 if you are not a member)
+GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}
+Authorization: Bearer {{jwt}}
+
+### Send a message: 200 { messageId, seq }
+POST {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "text": "Hello!"
+}
+
+### Reply to message #1
+POST {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "text": "Answer",
+  "replyToSeq": 1
+}
+
+### Latest messages
+GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages?limit=50
+Authorization: Bearer {{jwt}}
+
+### Messages newer than #1 (what an agent polls for)
+GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages?after=1
+Authorization: Bearer {{jwt}}
+
+### Add a member to a group: 204 (owner or admin)
+POST {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/members
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "userId": "{{otherUserId}}"
+}
+
+### Make a member admin: 204 (owner only)
+PUT {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/members/{{otherUserId}}/role
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "role": "Admin"
+}
+
+### Remove a member; your own id leaves the chat
+DELETE {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/members/{{otherUserId}}
+Authorization: Bearer {{jwt}}
+
+###

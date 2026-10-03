@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Messenger.Chats;
 using Messenger.Infrastructure.Mongo;
 using Messenger.Users;
 using MessengerWeb;
@@ -27,7 +28,12 @@ builder.Services.AddControllers()
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddMongo(builder.Configuration);
+
+// One mediator for all modules: the source generator in this project sees every referenced module.
+builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
+
 builder.Services.AddUsers(builder.Configuration);
+builder.Services.AddChats();
 
 // Every endpoint needs a signed-in account unless it is marked [AllowAnonymous].
 builder.Services.AddAuthorizationBuilder()
@@ -49,6 +55,7 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
 var app = builder.Build();
 
 await app.Services.InitializeUsers();
+await app.Services.InitializeChats();
 
 app.UseExceptionHandler();
 

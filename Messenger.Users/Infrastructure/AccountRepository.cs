@@ -22,6 +22,13 @@ public class AccountRepository : IAccountRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Account>> GetMany(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default)
+    {
+        return await _accounts
+            .Find(Builders<Account>.Filter.In(x => x.Id, ids))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<Account?> GetByEmail(Email email, CancellationToken cancellationToken = default)
     {
         return await _accounts

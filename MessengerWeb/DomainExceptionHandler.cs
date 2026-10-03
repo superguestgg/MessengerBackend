@@ -1,4 +1,5 @@
 using Messenger.Users.Domain;
+using ChatsDomain = Messenger.Chats.Domain;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -26,6 +27,11 @@ public sealed class DomainExceptionHandler : IExceptionHandler
             InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Invalid credentials"),
             AccessDeniedException => (StatusCodes.Status403Forbidden, "Access denied"),
             DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
+            ChatsDomain.ChatNotFoundException => (StatusCodes.Status404NotFound, "Chat not found"),
+            ChatsDomain.ParticipantNotFoundException => (StatusCodes.Status404NotFound, "Account not found"),
+            ChatsDomain.ChatAccessDeniedException => (StatusCodes.Status403Forbidden, "Access denied"),
+            ChatsDomain.ChatConcurrencyException => (StatusCodes.Status409Conflict, "Concurrent change"),
+            ChatsDomain.DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             _ => (0, null)
         };
 

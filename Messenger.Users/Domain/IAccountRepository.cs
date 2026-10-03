@@ -4,6 +4,8 @@ public interface IAccountRepository
 {
     Task<Account?> Get(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<Account>> GetMany(IReadOnlyCollection<Guid> ids, CancellationToken cancellationToken = default);
+
     Task<Account?> GetByEmail(Email email, CancellationToken cancellationToken = default);
 
     // Deleted bots are excluded.

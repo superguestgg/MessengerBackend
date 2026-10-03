@@ -4,7 +4,7 @@
 
 Бэкенд мессенджера на .NET 10. Модульный монолит: одно приложение, разделённое на независимые модули, внутри модулей — DDD.
 
-Сейчас готов модуль **Users**: аккаунты людей и ботов, вход (JWT и токены доступа) и профили.
+Готовы модули **Users** (аккаунты людей и ботов, вход по JWT и токенам доступа, профили) и **Chats** (личные и групповые чаты, сообщения).
 
 ## Стек
 
@@ -69,12 +69,15 @@ Messenger.sln
 ├── frontend                         — фронтенд: React + TypeScript + Vite (не входит в .sln)
 ├── MessengerWeb                     — хост: Program.cs, контроллеры, обработка ошибок
 ├── Messenger.Infrastructure.Mongo   — общее подключение к Mongo (AddMongo)
-└── Messenger.Users                  — модуль Users
-    ├── Domain                       — агрегаты, value objects, события, интерфейсы репозиториев
-    ├── Application                  — команды, запросы и их handler-ы
-    ├── Infrastructure               — репозитории, BSON-маппинг, индексы
-    └── UsersModule.cs               — AddUsers() / InitializeUsers()
-└── Messenger.Users.Tests            — unit-тесты модуля Users (xUnit)
+├── Messenger.Users                  — модуль Users
+│   ├── Domain                       — агрегаты, value objects, события, интерфейсы репозиториев
+│   ├── Application                  — команды, запросы и их handler-ы
+│   ├── Infrastructure               — репозитории, BSON-маппинг, индексы, аутентификация
+│   └── UsersModule.cs               — AddUsers() / InitializeUsers()
+├── Messenger.Users.Contracts        — что другие модули могут спросить у Users (IUsersApi)
+├── Messenger.Chats                  — модуль Chats: чаты и сообщения, та же структура папок
+├── Messenger.Users.Tests            — unit-тесты модуля Users (xUnit)
+└── Messenger.Chats.Tests            — unit-тесты модуля Chats (xUnit)
 ```
 
 ## Архитектура
@@ -84,11 +87,17 @@ Messenger.sln
 ```mermaid
 graph TD
     Web[MessengerWeb<br/>хост] --> Users[Messenger.Users<br/>модуль]
+    Web --> Chats[Messenger.Chats<br/>модуль]
     Web --> Mongo[Messenger.Infrastructure.Mongo<br/>общая техника]
+    Users --> Contracts[Messenger.Users.Contracts<br/>IUsersApi]
+    Chats --> Contracts
     Users --> Mongo
+    Chats --> Mongo
 ```
 
-- **Хост** (`MessengerWeb`) только собирает приложение: вызывает `AddMongo()`, затем `AddXxx()` каждого модуля и отдаёт HTTP.
+- **Хост** (`MessengerWeb`) только собирает приложение: вызывает `AddMongo()`, `AddMediator()`, затем `AddXxx()` каждого модуля и отдаёт HTTP.
+- **Mediator** один на всё приложение: source generator стоит только в хосте и находит handler-ы во всех модулях, на которые хост ссылается. Генератор в модуле создал бы второй, конфликтующий набор типов.
+- **Chats ссылается на `Messenger.Users.Contracts`, а не на `Messenger.Users`.** Реализация `IUsersApi` лежит в Users и регистрируется в `AddUsers()`.
 - **Модуль** — один проект со слоями-папками. Модуль владеет своими данными: свои коллекции, репозитории, маппинг. Другие модули не лезут в его репозитории.
 - **`Messenger.Infrastructure.Mongo`** — общая техника, которая ничего не знает о предметной области: клиент, база, сериализатор `Guid`. Хранилище конкретного модуля сюда не переносится.
 
@@ -143,6 +152,17 @@ graph TD
 - `access_tokens`: уникальный индекс по хешу и индекс по `AccountId`.
 - Профиль сохраняется upsert-ом: создание и редактирование — одна операция.
 
+### Модуль Chats
+
+Два агрегата одного модуля: `Chat` и `Message`. Коллекции `chats`, `messages`, `chat_message_counters`.
+
+- **Чат** — `Direct` (ровно двое) или `Group` (название, роли `Owner` / `Admin` / `Member`). Участник — `ChatMember { UserId, Role, JoinedAt }`; пользователь для Chats — только `UserId`, а `ChatParticipant { UserId, IsBot, OwnerId }` собирается из `IUsersApi` на время проверки правил.
+- **Личный чат на пару один**: `DirectKey` (два id по порядку) с частичным уникальным индексом. `POST /api/chats/direct` идемпотентен — для существующей пары вернёт тот же чат, в том числе при одновременных запросах.
+- **Правила в `Chat`**: бот не создаёт группы и первым пишет в личку только своему владельцу (так агент задаёт вопрос). Добавляют участников Owner и Admin; Admin удаляет только обычных участников; Owner не уходит и не удаляется; роли меняет только Owner, владение не передаётся. Не участнику чат не виден — 404, а не 403, чтобы id чатов нельзя было перебирать.
+- **Номер сообщения `Seq`** растёт внутри чата. Его выдаёт атомарный `$inc` в `chat_message_counters`, уникальный индекс `(ChatId, Seq)` страхует от повторов. Счётчик вынесен из документа чата, чтобы отправка сообщений не конфликтовала с изменением участников. Если запись сообщения упала после выдачи номера, номер пропускается — клиенты не должны рассчитывать на номера без пропусков.
+- **Изменения участников — с оптимистичной блокировкой** (`Chat.Version`): при одновременной правке один запрос получит 409 и повторит, изменения не теряются.
+- **Сообщение хранит только `AuthorId`**; имя автора и признак бота подставляются при чтении одним пакетным запросом в `IUsersApi`. Ответ на сообщение — `ReplyToSeq`.
+
 ### Ошибки и валидация
 
 Валидация в два уровня:
@@ -157,8 +177,10 @@ graph TD
 | `InvalidCredentialsException` | 401 |
 | `AccessDeniedException` | 403 |
 | `EmailAlreadyTakenException` | 409 |
-| `AccountNotFoundException`, `AccessTokenNotFoundException` | 404 |
-| любое другое `DomainException` | 400 |
+| `AccountNotFoundException`, `AccessTokenNotFoundException`, `ChatNotFoundException`, `ParticipantNotFoundException` | 404 |
+| `ChatAccessDeniedException` | 403 |
+| `ChatConcurrencyException` | 409 — повторить запрос |
+| любое другое `DomainException` (Users и Chats) | 400 |
 | всё остальное | 500 (без стектрейса) |
 
 ## Правила архитектуры
@@ -211,8 +233,17 @@ graph TD
 | `GET` | `/api/bots` | мои боты: `[{ botId, displayName, createdAt }]` | 200 |
 | `POST` | `/api/bots/{botId}/token` | перевыпустить токен бота → `{ botId, token }` | 200, 404 |
 | `DELETE` | `/api/bots/{botId}` | удалить бота, его токены перестают работать | 204, 404 |
+| `GET` | `/api/chats` | мои чаты, последние активные первыми | 200 |
+| `GET` | `/api/chats/{chatId}` | чат: `{ chatId, type, title?, members[], lastMessageSeq, lastMessageAt?, createdAt }` | 200, 404 |
+| `POST` | `/api/chats/direct` | `{ userId }` → `{ chatId }`, существующий или новый | 200, 400, 403, 404 |
+| `POST` | `/api/chats/group` | `{ title, memberIds? }` → `{ chatId }` | 200, 400, 403, 404 |
+| `POST` | `/api/chats/{chatId}/members` | `{ userId }`, добавить в группу | 204, 400, 403, 404, 409 |
+| `DELETE` | `/api/chats/{chatId}/members/{userId}` | удалить из группы; свой id — выйти | 204, 400, 403, 404, 409 |
+| `PUT` | `/api/chats/{chatId}/members/{userId}/role` | `{ role: "Admin" \| "Member" }` | 204, 400, 403, 404, 409 |
+| `GET` | `/api/chats/{chatId}/messages` | `?after=N` — новее N, `?before=N` — старше N, без них — последние; `limit` 1–100, по умолчанию 50; по возрастанию `seq` | 200, 400, 404 |
+| `POST` | `/api/chats/{chatId}/messages` | `{ text, replyToSeq? }` → `{ messageId, chatId, seq, createdAt }` | 200, 400, 404 |
 
-Ограничения: email до 254 символов, пароль 8–128, имя 1–64, bio до 500, имя токена 1–64. Перечисления в JSON — строками (`"type": "Bot"`).
+Ограничения: email до 254 символов, пароль 8–128, имя 1–64, bio до 500, имя токена 1–64, название чата 1–128, сообщение 1–4096 и не из одних пробелов. Перечисления в JSON — строками (`"type": "Bot"`).
 
 ## Как добавить модуль
 
@@ -220,7 +251,7 @@ graph TD
 2. `<Module>Module.cs` с `Add<Module>()` (репозитории, BSON-маппинг) и, если нужны индексы, `Initialize<Module>()`.
 3. Свои коллекции — имена в константах репозиториев.
 4. Если модуль нужен другим — проект `Messenger.<Module>.Contracts` с публичным API и интеграционными событиями. Сам модуль ссылается только на контракты других модулей.
-5. Подключить в `MessengerWeb/Program.cs` после `AddMongo()`.
+5. Подключить в `MessengerWeb/Program.cs` после `AddMongo()` и `AddMediator()`. Генератор Mediator в модуль не добавлять — он только в хосте.
 
 ## Ограничения и планы
 
@@ -228,4 +259,5 @@ graph TD
 - **Доменные события не гарантированы.** Если процесс упадёт между сохранением и публикацией, событие потеряется. Когда появятся подписчики — outbox.
 - У `AccountRegistered` пока нет подписчиков, отсюда предупреждение `MSG0005` при сборке.
 - Тесты — только unit-тесты домена; интеграционных тестов против Mongo пока нет.
-- Впереди: модули Chats и Messages, real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).
+- Нет редактирования и удаления сообщений, отметок о прочтении и real-time: новые сообщения пока только по `?after=N`.
+- Впереди: long polling, MCP-сервер, real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).

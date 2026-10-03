@@ -25,6 +25,7 @@ dotnet build Messenger.sln -m:1 -nodeReuse:false -p:UseSharedCompilation=false -
 
 ```bash
 dotnet test Messenger.Users.Tests --no-build
+dotnet test Messenger.Chats.Tests --no-build
 ```
 
 Фронтенд:
@@ -40,7 +41,8 @@ npm run build
 
 - `frontend` — фронтенд, отдельный npm-проект; в `.sln` не входит.
 - `MessengerWeb` — хост: `Program.cs`, контроллеры, `DomainExceptionHandler`. Бизнес-логики здесь нет.
-- `Messenger.Users.Tests` — unit-тесты модуля Users (xUnit); новые правила домена покрывай тестами здесь.
+- `Messenger.<Module>.Tests` — unit-тесты модуля (xUnit); новые правила домена покрывай тестами там.
+- `Messenger.Users.Contracts` — `IUsersApi` для других модулей; реализация в `Messenger.Users`.
 - `Messenger.Infrastructure.Mongo` — общая техника (`AddMongo()`): клиент, база, сериализатор `Guid`. Ничего не знает о предметной области.
 - `Messenger.<Module>` — модуль = bounded context, один проект с папками `Domain` / `Application` / `Infrastructure` и `<Module>Module.cs`. Делить модуль на несколько проектов **не нужно** — решение принято.
 
@@ -80,7 +82,8 @@ npm run build
 - Меняешь то, как тип ложится в Mongo, — проверь форму документа без базы: `entity.ToBsonDocument()`, `BsonSerializer.Deserialize<T>(doc)` и `filter.Render(...)` во временном консольном проекте вне репозитория.
 
 ### Хост
-- Модуль подключается в `Program.cs`: сначала `AddMongo(configuration)`, затем `Add<Module>()`, после `Build()` — `Initialize<Module>()`.
+- Модуль подключается в `Program.cs`: сначала `AddMongo(configuration)` и `AddMediator(...)`, затем `Add<Module>()`, после `Build()` — `Initialize<Module>()`.
+- `Mediator.SourceGenerator` подключён **только** в `MessengerWeb`: он находит handler-ы во всех модулях. В модулях — только `Mediator.Abstractions`; `AddMediator` в модуле не вызывай.
 - Контроллеры тонкие: собрать команду → `_mediator.Send` → вернуть результат.
 - Все эндпоинты требуют вход (fallback policy). Анонимные помечай `[AllowAnonymous]` явно.
 - Текущий аккаунт — только `User.GetAccountId()`. Не принимай id вызывающего из тела запроса или маршрута; проверки «можно ли ему» — в методах агрегата (`EnsureProfileEditableBy` и т. п.).
