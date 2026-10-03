@@ -14,7 +14,7 @@ public class Message : AggregateRoot
         MessageText text,
         long? replyToSeq)
     {
-        return new Message
+        var message = new Message
         {
             Id = Guid.NewGuid(),
             ChatId = chatId,
@@ -24,6 +24,10 @@ public class Message : AggregateRoot
             ReplyToSeq = replyToSeq,
             CreatedAt = DateTime.UtcNow
         };
+
+        message.Raise(new MessageSent(chatId, seq, authorId));
+
+        return message;
     }
 
     public Guid Id { get; private set; }

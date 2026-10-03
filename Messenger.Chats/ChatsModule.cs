@@ -2,6 +2,7 @@ using Messenger.Chats.Application;
 using Messenger.Chats.Domain;
 using Messenger.Chats.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MongoDB.Driver;
 
 namespace Messenger.Chats;
@@ -22,6 +23,16 @@ public static class ChatsModule
         services.AddScoped<ParticipantLookup>();
 
         services.AddScoped<ChatResultBuilder>();
+
+        services.AddScoped<MessageResultBuilder>();
+
+
+        // Process-wide: waits and the messages that wake them meet here.
+        services.AddSingleton<IChatSignals, InMemoryChatSignals>();
+
+        services.AddSingleton<WaitSlots>();
+
+        services.TryAddSingleton(TimeProvider.System);
 
 
         return services;

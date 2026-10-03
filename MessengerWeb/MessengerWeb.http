@@ -171,6 +171,11 @@ Authorization: Bearer {{jwt}}
 GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages?after=1
 Authorization: Bearer {{jwt}}
 
+### Wait (long polling) for a reply from a given account to message #1: answers as soon as it arrives,
+### or { messages: [], nextAfterSeq } after the timeout. Use nextAfterSeq as "after" for the next wait.
+GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages/wait?after=1&from={{otherUserId}}&replyTo=1&timeout=30
+Authorization: Bearer {{jwt}}
+
 ### Add a member to a group: 204 (owner or admin)
 POST {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/members
 Authorization: Bearer {{jwt}}

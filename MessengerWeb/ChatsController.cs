@@ -118,6 +118,29 @@ public class ChatsController : ControllerBase
         return Ok(result);
     }
 
+    // Long polling: answers as soon as a matching message newer than "after" appears,
+    // or with an empty list when the timeout runs out. Pass nextAfterSeq as "after" next time.
+    [HttpGet("{chatId:guid}/messages/wait")]
+    public async Task<IActionResult> WaitForMessages(
+        Guid chatId,
+        [FromQuery, Required, Range(0, long.MaxValue)] long? after,
+        [FromQuery] Guid? from,
+        [FromQuery, Range(1, long.MaxValue)] long? replyTo,
+        [FromQuery, Range(0, MaxWaitSeconds)] int timeout = DefaultWaitSeconds)
+    {
+        var result = await _mediator.Send(
+            new WaitForMessagesQuery(
+                User.GetAccountId(),
+                chatId,
+                after!.Value,
+                from,
+                replyTo,
+                TimeSpan.FromSeconds(timeout)),
+            HttpContext.RequestAborted);
+
+        return Ok(result);
+    }
+
     [HttpPost("{chatId:guid}/messages")]
     public async Task<IActionResult> SendMessage(
         Guid chatId,
@@ -135,6 +158,11 @@ public class ChatsController : ControllerBase
     private const int DefaultPageSize = 50;
 
     private const int MaxPageSize = 100;
+
+    private const int DefaultWaitSeconds = 30;
+
+    // Kept below the usual 60 s proxy timeout; WaitForMessagesHandler.MaxTimeout matches it.
+    private const int MaxWaitSeconds = 50;
 }
 
 public sealed record CreateDirectChatRequest(

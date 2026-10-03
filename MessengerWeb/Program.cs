@@ -1,7 +1,10 @@
+using System.Security.Claims;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
 using Messenger.Chats;
 using Messenger.Infrastructure.Mongo;
 using Messenger.Users;
+using Messenger.Users.Application;
 using MessengerWeb;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.OpenApi;
@@ -52,6 +55,31 @@ builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
     .AllowAnyHeader()
     .AllowAnyMethod()
     .SetPreflightMaxAge(TimeSpan.FromMinutes(10))));
+
+// Per account when signed in, per IP otherwise (registration and login get the stricter limit).
+var rateLimits = builder.Configuration.GetSection("RateLimiting");
+var accountPermits = rateLimits.GetValue("AccountPermitsPerMinute", 600);
+var anonymousPermits = rateLimits.GetValue("AnonymousPermitsPerMinute", 60);
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+    {
+        var accountId = context.User.FindFirstValue(AccountClaims.AccountId);
+
+        var (key, permits) = accountId != null
+            ? ("account:" + accountId, accountPermits)
+            : ("ip:" + context.Connection.RemoteIpAddress, anonymousPermits);
+
+        return RateLimitPartition.GetFixedWindowLimiter(key, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = permits,
+            Window = TimeSpan.FromMinutes(1)
+        });
+    });
+});
 var app = builder.Build();
 
 await app.Services.InitializeUsers();
@@ -70,6 +98,8 @@ app.UseHttpsRedirection();
 app.UseCors();
 
 app.UseAuthentication();
+
+app.UseRateLimiter();
 
 app.UseAuthorization();
 

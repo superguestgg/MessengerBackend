@@ -173,6 +173,8 @@ public class ChatTests
         Assert.Equal(1, message.Seq);
         Assert.Equal(alice.UserId, message.AuthorId);
         Assert.Null(message.ReplyToSeq);
+        var sent = Assert.IsType<MessageSent>(Assert.Single(message.DomainEvents));
+        Assert.Equal((chat.Id, 1L, alice.UserId), (sent.ChatId, sent.Seq, sent.AuthorId));
         Assert.Throws<ChatNotFoundException>(() => chat.PostMessage(Guid.NewGuid(), new MessageText("hi"), 2, null));
     }
 

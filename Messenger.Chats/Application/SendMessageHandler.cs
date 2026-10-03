@@ -8,13 +8,16 @@ public sealed class SendMessageHandler
 {
     private readonly IChatRepository _chatRepository;
     private readonly IMessageRepository _messageRepository;
+    private readonly IPublisher _publisher;
 
     public SendMessageHandler(
         IChatRepository chatRepository,
-        IMessageRepository messageRepository)
+        IMessageRepository messageRepository,
+        IPublisher publisher)
     {
         _chatRepository = chatRepository;
         _messageRepository = messageRepository;
+        _publisher = publisher;
     }
 
 
@@ -47,6 +50,8 @@ public sealed class SendMessageHandler
 
 
         await _messageRepository.Add(message, cancellationToken);
+
+        await _publisher.PublishDomainEvents(message, cancellationToken);
 
 
         return new SendMessageResult(

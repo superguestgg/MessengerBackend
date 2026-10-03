@@ -1,6 +1,5 @@
 using Mediator;
 using Messenger.Chats.Domain;
-using Messenger.Users.Contracts;
 
 namespace Messenger.Chats.Application;
 
@@ -9,16 +8,19 @@ public sealed class GetMessagesHandler
 {
     private readonly IChatRepository _chatRepository;
     private readonly IMessageRepository _messageRepository;
-    private readonly IUsersApi _usersApi;
+    private readonly MessageResultBuilder _resultBuilder;
+    private readonly TimeProvider _time;
 
     public GetMessagesHandler(
         IChatRepository chatRepository,
         IMessageRepository messageRepository,
-        IUsersApi usersApi)
+        MessageResultBuilder resultBuilder,
+        TimeProvider time)
     {
         _chatRepository = chatRepository;
         _messageRepository = messageRepository;
-        _usersApi = usersApi;
+        _resultBuilder = resultBuilder;
+        _time = time;
     }
 
 
@@ -45,28 +47,13 @@ public sealed class GetMessagesHandler
             request.Limit,
             cancellationToken);
 
-        var authors = (await _usersApi.GetAccounts(
-                messages.Select(x => x.AuthorId).Distinct().ToArray(),
-                cancellationToken))
-            .ToDictionary(x => x.AccountId);
+        // Clients poll with "after", so it must not skip a message that is still being written.
+        if (request.AfterSeq != null)
+            messages = ContiguousMessages
+                .Take(messages, request.AfterSeq.Value, _time.GetUtcNow().UtcDateTime)
+                .Messages;
 
 
-        return messages
-            .Select(x =>
-            {
-                var author = authors.GetValueOrDefault(x.AuthorId);
-
-                return new MessageResult(
-                    x.Id,
-                    x.ChatId,
-                    x.Seq,
-                    x.AuthorId,
-                    author?.DisplayName,
-                    author?.IsBot ?? false,
-                    x.Text.Value,
-                    x.ReplyToSeq,
-                    x.CreatedAt);
-            })
-            .ToArray();
+        return await _resultBuilder.Build(messages, cancellationToken);
     }
 }
