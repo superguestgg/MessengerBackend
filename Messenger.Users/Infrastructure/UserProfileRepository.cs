@@ -21,6 +21,13 @@ public sealed class UserProfileRepository : IUserProfileRepository
             .FirstOrDefaultAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<UserProfile>> GetMany(IReadOnlyCollection<Guid> userIds, CancellationToken cancellationToken = default)
+    {
+        return await _collection
+            .Find(Builders<UserProfile>.Filter.In(x => x.UserId, userIds))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task Save(UserProfile profile, CancellationToken cancellationToken = default)
     {
         await _collection.ReplaceOneAsync(

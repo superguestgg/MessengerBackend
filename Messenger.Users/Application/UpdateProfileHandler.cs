@@ -28,6 +28,8 @@ public sealed class UpdateProfileHandler
         if (account == null)
             throw new AccountNotFoundException(request.UserId);
 
+        account.EnsureProfileEditableBy(request.RequesterId);
+
 
         var displayName = new DisplayName(request.DisplayName);
 

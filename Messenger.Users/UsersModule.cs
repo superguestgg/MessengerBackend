@@ -1,6 +1,8 @@
 using Messenger.Users.Application;
 using Messenger.Users.Domain;
 using Messenger.Users.Infrastructure;
+using Messenger.Users.Infrastructure.Authentication;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Driver;
 
@@ -10,7 +12,8 @@ public static class UsersModule
 {
     // Requires AddMongo() from Messenger.Infrastructure.Mongo to be called by the host.
     public static IServiceCollection AddUsers(
-        this IServiceCollection services)
+        this IServiceCollection services,
+        IConfiguration configuration)
     {
         UsersBsonMappings.Register();
 
@@ -22,7 +25,12 @@ public static class UsersModule
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 
+        services.AddScoped<IAccessTokenRepository, AccessTokenRepository>();
+
         services.AddScoped<IPasswordHasher, PasswordHasher>();
+
+
+        services.AddMessengerAuthentication(configuration);
 
 
         return services;

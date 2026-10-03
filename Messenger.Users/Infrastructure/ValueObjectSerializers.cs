@@ -20,6 +20,19 @@ public sealed class EmailSerializer : SerializerBase<Email>
     }
 }
 
+public sealed class AccessTokenNameSerializer : SerializerBase<AccessTokenName>
+{
+    public override AccessTokenName Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)
+    {
+        return new AccessTokenName(context.Reader.ReadString());
+    }
+
+    public override void Serialize(BsonSerializationContext context, BsonSerializationArgs args, AccessTokenName value)
+    {
+        context.Writer.WriteString(value.Value);
+    }
+}
+
 public sealed class DisplayNameSerializer : SerializerBase<DisplayName>
 {
     public override DisplayName Deserialize(BsonDeserializationContext context, BsonDeserializationArgs args)

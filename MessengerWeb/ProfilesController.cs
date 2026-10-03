@@ -25,13 +25,14 @@ public class ProfilesController : ControllerBase
         return profile == null ? NotFound() : Ok(profile);
     }
 
-    // TODO: take userId from the JWT once login exists; anyone can edit any profile until then.
+    // userId is the caller or one of the caller's bots.
     [HttpPut("{userId:guid}")]
     public async Task<IActionResult> Update(
         Guid userId,
         UpdateProfileRequest request)
     {
         await _mediator.Send(new UpdateProfileCommand(
+            User.GetAccountId(),
             userId,
             request.DisplayName,
             request.Bio));
