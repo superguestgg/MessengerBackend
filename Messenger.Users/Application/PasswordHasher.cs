@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 
-namespace Messenger.Users.Domain;
+namespace Messenger.Users.Application;
 
 public sealed class PasswordHasher : IPasswordHasher
 {

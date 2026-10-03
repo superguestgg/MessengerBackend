@@ -1,8 +1,12 @@
+using Messenger.Users.Application;
 using Messenger.Users.Domain;
-using Messenger.Users.Ifrastructure;
+using Messenger.Users.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using MongoDB.Bson;
+using MongoDB.Bson.Serialization;
+using MongoDB.Bson.Serialization.Serializers;
 using MongoDB.Driver;
 
 namespace Messenger.Users;
@@ -16,6 +20,9 @@ public static class UsersModule
         services.Configure<UsersOptions>(
             configuration.GetSection(UsersOptions.SectionName));
 
+        // Driver 3.x refuses to serialize Guid until a representation is chosen.
+        BsonSerializer.TryRegisterSerializer(
+            new GuidSerializer(GuidRepresentation.Standard));
 
         services.AddSingleton<IMongoClient>(sp =>
         {
@@ -54,4 +61,14 @@ public static class UsersModule
         return services;
     }
 
+    public static async Task InitializeUsers(
+        this IServiceProvider services,
+        CancellationToken cancellationToken = default)
+    {
+        using var scope = services.CreateScope();
+
+        var database = scope.ServiceProvider.GetRequiredService<IMongoDatabase>();
+
+        await UsersMongoInitializer.EnsureIndexes(database, cancellationToken);
+    }
 }

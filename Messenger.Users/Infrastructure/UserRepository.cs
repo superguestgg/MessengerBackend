@@ -1,7 +1,7 @@
 using Messenger.Users.Domain;
 using MongoDB.Driver;
 
-namespace Messenger.Users.Ifrastructure;
+namespace Messenger.Users.Infrastructure;
 
 public class UserRepository : IUserRepository
 {
@@ -21,7 +21,9 @@ public class UserRepository : IUserRepository
 
     public Task<User?> GetByEmail(string email)
     {
-        throw new NotImplementedException();
+        return _users
+            .Find(x => x.Email == email)
+            .FirstOrDefaultAsync();
     }
 
     public Task Add(User user)

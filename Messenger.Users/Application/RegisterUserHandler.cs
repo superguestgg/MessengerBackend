@@ -1,6 +1,7 @@
 using Mediator;
+using Messenger.Users.Domain;
 
-namespace Messenger.Users.Domain;
+namespace Messenger.Users.Application;
 
 public sealed class RegisterUserHandler 
     : IRequestHandler<RegisterUserCommand, RegisterUserResult>

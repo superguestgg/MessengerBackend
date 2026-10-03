@@ -1,5 +1,5 @@
 using Mediator;
-using Messenger.Users.Domain;
+using Messenger.Users.Application;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MessengerWeb;

@@ -1,7 +1,7 @@
 using Messenger.Users.Domain;
 using MongoDB.Driver;
 
-namespace Messenger.Users.Ifrastructure;
+namespace Messenger.Users.Infrastructure;
 
 public sealed class UserProfileRepository : IUserProfileRepository
 {
