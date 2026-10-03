@@ -35,6 +35,7 @@ cd frontend
 npm ci
 npm run lint
 npm run build
+npm run build:host   # сборка в MessengerWeb/wwwroot: фронт раздаёт бэкенд
 ```
 
 ## Структура

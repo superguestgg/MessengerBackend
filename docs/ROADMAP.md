@@ -98,7 +98,7 @@ Cookie не используются: нет CSRF и нет проблем с th
 Поддерживаются две схемы, выбор — настройкой, код один:
 
 1. **Фронт и бэкенд на разных доменах** (основной план). Бэкенд разрешает домен фронта через CORS, список доменов — в `appsettings.json` (`Cors:AllowedOrigins`), без `*`. Фронт знает адрес API из `VITE_API_URL`. Для разработки в списке `http://localhost:5173`.
-2. **Бэкенд раздаёт собранный фронт** (`dist/` → `MessengerWeb/wwwroot`, `UseStaticFiles` + `MapFallbackToFile("index.html")`). Один домен, CORS не нужен. Неизвестные пути под `/api` и `/mcp` возвращают 404, а не `index.html`.
+2. ✅ **Бэкенд раздаёт собранный фронт** (`npm run build:host` → `MessengerWeb/wwwroot`, `UseStaticFiles` + `MapFallbackToFile("index.html")`). Один домен, CORS не нужен. Неизвестные пути под `/api` и `/mcp` возвращают 404, а не `index.html`. Включается наличием `wwwroot`, отдельной настройки нет.
 
 nginx для обеих схем не обязателен.
 

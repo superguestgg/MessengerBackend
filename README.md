@@ -65,12 +65,30 @@ dotnet run --project MessengerWeb
 
 Rate limiting — `RateLimiting:AccountPermitsPerMinute` (по умолчанию 600 запросов в минуту на аккаунт) и `RateLimiting:AnonymousPermitsPerMinute` (60 в минуту на IP для запросов без токена — регистрация и вход). Сверх лимита — 429. За reverse proxy IP будет адресом прокси, пока не настроены forwarded headers.
 
+### Фронтенд с того же домена
+
+Бэкенд может сам раздавать собранный фронт — тогда всё на одном домене и CORS не нужен:
+
+```bash
+cd frontend && npm ci && npm run build:host   # сборка в MessengerWeb/wwwroot (в git не попадает)
+dotnet publish MessengerWeb -c Release         # wwwroot попадает в публикацию
+```
+
+`VITE_API_URL` при этом не задают: пустой адрес — API на том же домене. Без `wwwroot` бэкенд ничего не раздаёт, и фронт можно держать на другом домене (`Cors:AllowedOrigins`).
+
+Маршруты (`MessengerWeb/FrontendHosting.cs`):
+
+- файлы из `wwwroot` отдаются без входа; `assets/` (имена с хешем) кешируются навсегда, остальное — `no-cache`, чтобы новая версия `index.html` подхватывалась сразу;
+- любой другой путь (`/chats/…`) получает `index.html`, дальше маршрутизирует фронт;
+- неизвестный путь под `/api` и `/mcp` — 404 (без токена — 401, как и раньше), а не `index.html`;
+- отсутствующий файл (`/robots.txt`, `/old.js`) — 404.
+
 ## Структура решения
 
 ```
 Messenger.sln
 ├── frontend                         — фронтенд: React + TypeScript + Vite (не входит в .sln)
-├── MessengerWeb                     — хост: Program.cs, контроллеры, MCP-инструменты (Mcp/), обработка ошибок
+├── MessengerWeb                     — хост: Program.cs, контроллеры, MCP-инструменты (Mcp/), обработка ошибок, раздача фронта
 ├── Messenger.Infrastructure.Mongo   — общее подключение к Mongo (AddMongo)
 ├── Messenger.Users                  — модуль Users
 │   ├── Domain                       — агрегаты, value objects, события, интерфейсы репозиториев
