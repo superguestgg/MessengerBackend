@@ -9,13 +9,13 @@ public static class UsersMongoInitializer
         IMongoDatabase database,
         CancellationToken cancellationToken = default)
     {
-        var users = database.GetCollection<User>("users");
+        var accounts = database.GetCollection<Account>(AccountRepository.CollectionName);
 
-        var emailIndex = new CreateIndexModel<User>(
-            Builders<User>.IndexKeys.Ascending(x => x.Email),
+        var emailIndex = new CreateIndexModel<Account>(
+            Builders<Account>.IndexKeys.Ascending(x => x.Email),
             new CreateIndexOptions { Unique = true, Name = "ux_users_email" });
 
-        await users.Indexes.CreateOneAsync(
+        await accounts.Indexes.CreateOneAsync(
             emailIndex,
             cancellationToken: cancellationToken);
     }

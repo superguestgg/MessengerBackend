@@ -23,6 +23,8 @@ public static class UsersModule
         // Driver 3.x refuses to serialize Guid until a representation is chosen.
         BsonSerializer.TryRegisterSerializer(
             new GuidSerializer(GuidRepresentation.Standard));
+        BsonSerializer.TryRegisterSerializer(new EmailSerializer());
+        BsonSerializer.TryRegisterSerializer(new DisplayNameSerializer());
 
         services.AddSingleton<IMongoClient>(sp =>
         {
@@ -51,7 +53,7 @@ public static class UsersModule
         services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 
 
-        services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IAccountRepository, AccountRepository>();
 
         services.AddScoped<IUserProfileRepository, UserProfileRepository>();
 

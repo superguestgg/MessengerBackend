@@ -1,12 +1,12 @@
 namespace Messenger.Users.Domain;
 
-public sealed class EmailAlreadyTakenException : Exception
+public sealed class EmailAlreadyTakenException : DomainException
 {
-    public EmailAlreadyTakenException(string email)
+    public EmailAlreadyTakenException(Email email)
         : base($"Email '{email}' is already taken.")
     {
         Email = email;
     }
 
-    public string Email { get; }
+    public Email Email { get; }
 }

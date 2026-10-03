@@ -1,6 +1,6 @@
 namespace Messenger.Users.Domain;
 
-public enum UserStatus
+public enum AccountStatus
 {
     Active = 1,
     Blocked = 2,

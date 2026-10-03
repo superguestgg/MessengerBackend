@@ -1,33 +1,48 @@
 @MessengerWeb_HostAddress = http://localhost:5243
 
-### Register: 200
-POST {{MessengerWeb_HostAddress}}/api/users/register
+### Register: 200, copy accountId from the response
+POST {{MessengerWeb_HostAddress}}/api/account/register
 Content-Type: application/json
 
 {
   "email": "test@example.com",
-  "password": "P@ssw0rd!",
-  "displayName": "Test User"
+  "password": "P@ssw0rd!"
 }
 
 ### Same email in another case: 409
-POST {{MessengerWeb_HostAddress}}/api/users/register
+POST {{MessengerWeb_HostAddress}}/api/account/register
 Content-Type: application/json
 
 {
   "email": " TEST@Example.com ",
-  "password": "P@ssw0rd!",
-  "displayName": "Test User"
+  "password": "P@ssw0rd!"
 }
 
 ### Invalid input: 400
-POST {{MessengerWeb_HostAddress}}/api/users/register
+POST {{MessengerWeb_HostAddress}}/api/account/register
 Content-Type: application/json
 
 {
   "email": "not-an-email",
-  "password": "short",
-  "displayName": ""
+  "password": "short"
 }
+
+###
+@accountId = 00000000-0000-0000-0000-000000000000
+
+### Profile before it is filled in: 404
+GET {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
+
+### Create or update profile: 204 (404 if the account does not exist)
+PUT {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
+Content-Type: application/json
+
+{
+  "displayName": "Test User",
+  "bio": "Hello!"
+}
+
+### Profile after: 200
+GET {{MessengerWeb_HostAddress}}/api/profiles/{{accountId}}
 
 ###

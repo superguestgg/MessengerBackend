@@ -2,9 +2,8 @@ namespace Messenger.Users.Domain;
 
 public interface IUserProfileRepository
 {
-    Task<UserProfile?> Get(Guid userId);
+    Task<UserProfile?> Get(Guid userId, CancellationToken cancellationToken = default);
 
-    Task Add(UserProfile profile);
-
-    Task Update(UserProfile profile);
+    // Insert or replace: a profile is created and edited by the same operation.
+    Task Save(UserProfile profile, CancellationToken cancellationToken = default);
 }

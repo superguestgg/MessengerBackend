@@ -21,6 +21,8 @@ public sealed class DomainExceptionHandler : IExceptionHandler
         var (status, title) = exception switch
         {
             EmailAlreadyTakenException => (StatusCodes.Status409Conflict, "Email already taken"),
+            AccountNotFoundException => (StatusCodes.Status404NotFound, "Account not found"),
+            DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             _ => (0, null)
         };
 

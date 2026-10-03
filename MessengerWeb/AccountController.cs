@@ -4,12 +4,12 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace MessengerWeb;
 [ApiController]
-[Route("api/users")]
-public class UsersController : ControllerBase
+[Route("api/account")]
+public class AccountController : ControllerBase
 {
     private readonly IMediator _mediator;
 
-    public UsersController(IMediator mediator)
+    public AccountController(IMediator mediator)
     {
         _mediator = mediator;
     }
@@ -17,7 +17,7 @@ public class UsersController : ControllerBase
 
     [HttpPost("register")]
     public async Task<IActionResult> Register(
-        RegisterUserCommand command)
+        RegisterAccountCommand command)
     {
         var result = await _mediator.Send(command);
 

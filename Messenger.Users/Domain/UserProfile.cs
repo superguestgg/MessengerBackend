@@ -4,6 +4,8 @@ namespace Messenger.Users.Domain;
 
 public class UserProfile
 {
+    public const int BioMaxLength = 500;
+
     private UserProfile()
     {
     }
@@ -11,26 +13,39 @@ public class UserProfile
 
     public static UserProfile Create(
         Guid userId,
-        string displayName)
+        DisplayName displayName,
+        string? bio)
     {
-        return new UserProfile
-        {
-            UserId = userId,
-            DisplayName = displayName,
-            UpdatedAt = DateTime.UtcNow
-        };
+        var profile = new UserProfile { UserId = userId };
+
+        profile.Update(displayName, bio);
+
+        return profile;
+    }
+
+    public void Update(
+        DisplayName displayName,
+        string? bio)
+    {
+        bio = string.IsNullOrWhiteSpace(bio) ? null : bio.Trim();
+
+        if (bio?.Length > BioMaxLength)
+            throw new DomainException(
+                $"Bio must be at most {BioMaxLength} characters long.");
+
+        DisplayName = displayName;
+        Bio = bio;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     [BsonId]
     public Guid UserId { get; private set; }
 
-    public string DisplayName { get; private set; } = null!;
+    public DisplayName DisplayName { get; private set; } = null!;
 
     public Guid? AvatarId { get; private set; }
 
     public string? Bio { get; private set; }
 
     public DateTime UpdatedAt { get; private set; }
-
-    // методы
 }
