@@ -375,6 +375,7 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 |---|---|---|---|
 | `POST` | `/api/account/register` | `{ email, password }` → `{ accountId }` | 200, 400, 409 |
 | `POST` | `/api/auth/login` | `{ email, password }` → `{ accountId, accessToken, expiresAt }` | 200, 400, 401 |
+| `POST` | `/api/account/password` | `{ currentPassword, newPassword }`, сменить свой пароль; только люди. Выданные JWT и личные токены продолжают работать | 204, 400, 403 — неверный текущий пароль или бот |
 | `GET` | `/api/me` | кто я: `{ accountId, type, isBot, email?, ownerId?, profile? }` | 200 |
 | `GET` | `/api/users/search` | `?query=` — ID, email или начало слова в имени (2–254 символа), `limit` 1–20, по умолчанию 10 → `[{ userId, displayName?, isBot }]` | 200, 400 |
 | `GET` | `/api/profiles/{userId}` | профиль пользователя или бота | 200, 404 — профиль ещё не заполнен |

@@ -111,6 +111,43 @@ public class AccountTests
     }
 
     [Fact]
+    public void ChangePassword_replaces_hash_when_current_password_matches()
+    {
+        var user = RegisterUser();
+        string? checkedHash = null;
+
+        user.ChangePassword(
+            hash =>
+            {
+                checkedHash = hash;
+                return true;
+            },
+            "new-hash");
+
+        Assert.Equal("hash", checkedHash);
+        Assert.Equal("new-hash", user.PasswordHash);
+        Assert.True(user.CanSignInWithPassword);
+    }
+
+    [Fact]
+    public void ChangePassword_rejects_wrong_current_password()
+    {
+        var user = RegisterUser();
+
+        Assert.Throws<IncorrectPasswordException>(() => user.ChangePassword(_ => false, "new-hash"));
+        Assert.Equal("hash", user.PasswordHash);
+    }
+
+    [Fact]
+    public void Bot_cannot_change_password()
+    {
+        var bot = RegisterUser().CreateBot(new DisplayName("Bot"));
+
+        Assert.Throws<AccessDeniedException>(() => bot.ChangePassword(_ => true, "new-hash"));
+        Assert.Null(bot.PasswordHash);
+    }
+
+    [Fact]
     public void Profile_is_editable_by_self_and_by_bot_owner_only()
     {
         var owner = RegisterUser();

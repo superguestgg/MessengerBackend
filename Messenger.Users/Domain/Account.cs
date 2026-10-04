@@ -86,6 +86,20 @@ public class Account : AggregateRoot
         UpdatedAt = DateTime.UtcNow;
     }
 
+    // The hasher lives outside the domain, so the current password is checked through a callback.
+    public void ChangePassword(
+        Func<string, bool> isCurrentPassword,
+        string newPasswordHash)
+    {
+        EnsureActiveUser("change passwords");
+
+        if (PasswordHash == null || !isCurrentPassword(PasswordHash))
+            throw new IncorrectPasswordException();
+
+        PasswordHash = newPasswordHash;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public void EnsureProfileEditableBy(Guid requesterId)
     {
         if (Status == AccountStatus.Deleted)

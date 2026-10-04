@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Mediator;
 using Messenger.Users.Application;
 using Microsoft.AspNetCore.Authorization;
@@ -25,4 +26,24 @@ public class AccountController : ControllerBase
 
         return Ok(result);
     }
+
+    [HttpPost("password")]
+    public async Task<IActionResult> ChangePassword(
+        ChangePasswordRequest request)
+    {
+        await _mediator.Send(new ChangePasswordCommand(
+            User.GetAccountId(),
+            request.CurrentPassword,
+            request.NewPassword));
+
+        return NoContent();
+    }
 }
+
+public sealed record ChangePasswordRequest(
+    [Required, MaxLength(128)]
+    string CurrentPassword,
+
+    [Required, MinLength(8), MaxLength(128)]
+    string NewPassword
+);
