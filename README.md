@@ -259,6 +259,8 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 }
 ```
 
+`.mcp.json` в `.gitignore`: у каждого свой токен. Десктопное приложение Claude не видит переменных из `~/.zshrc`, поэтому там токен приходится вписывать в файл прямо — тем более его нельзя коммитить.
+
 Сценарий «агент спрашивает владельца»: `whoami` → `open_direct_chat(ownerId)` → `send_message` → `wait_for_reply(chatId, after = seq, fromUserId = ownerId, replyToSeq = seq)`; при `timedOut` — снова `wait_for_reply` с `after = nextAfterSeq`. Если у MCP-клиента таймаут вызова меньше 50 с, передавайте меньший `timeoutSeconds`.
 
 ### Ошибки и валидация
