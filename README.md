@@ -109,9 +109,22 @@ docker run -p 8080:8080 \
 Секреты репозитория (Settings → Secrets and variables → Actions):
 
 - `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY`, `SERVER_SSH_PORT` — доступ по SSH;
-- `DEPLOY_PATH` — папка приложения на сервере, например `~/messenger/app`. Содержимое публикации ложится прямо в неё, исполняемый файл — `DEPLOY_PATH/MessengerWeb`.
+- `DEPLOY_PATH` — папка приложения на сервере, например `~/messenger/app`. Содержимое публикации ложится прямо в неё, исполняемый файл — `DEPLOY_PATH/MessengerWeb`;
+- `JWT_SIGNING_KEY` — ключ подписи JWT, случайная строка не короче 32 символов. Workflow кладёт его в `appsettings.Production.json` рядом с исполняемым файлом; без секрета деплой падает. Не меняйте ключ без нужды: после смены все входы в браузере сбрасываются.
 
-Перезапуск приложения — на стороне хостинга. Запускайте `MessengerWeb` из его папки: `wwwroot` и `appsettings.json` ищутся в текущей директории. Переменные окружения — те же, что для Docker (`Mongo__ConnectionString`, `Jwt__SigningKey`, …); порт задаёт `ASPNETCORE_HTTP_PORTS` или `ASPNETCORE_URLS`.
+Перезапуск приложения — на стороне хостинга. `wwwroot` и `appsettings*.json` ищутся рядом с исполняемым файлом, так что текущая директория при запуске не важна.
+
+Переменные хостинга подхватываются сами и важнее `appsettings.json` и `Mongo__*`:
+
+| Переменная | Что задаёт |
+|---|---|
+| `APP_IP`, `APP_PORT` | адрес, который слушает приложение (`http://APP_IP:APP_PORT`); HTTPS снимает прокси хостинга, `APP_HTTPS_PORT` не используется |
+| `DB_CONNECTION_STRING` | `Mongo:ConnectionString` |
+| `DBNAME` | `Mongo:DatabaseName` |
+
+Без них работают те же переменные, что для Docker (`Mongo__ConnectionString`, `Jwt__SigningKey`, …), порт — `ASPNETCORE_HTTP_PORTS` или `ASPNETCORE_URLS`.
+
+IP клиента (для ограничения частоты запросов) и схема берутся из заголовков `X-Forwarded-For` / `X-Forwarded-Proto`, если запрос пришёл от прокси на этой же машине (loopback).
 
 ## Структура решения
 
