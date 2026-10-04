@@ -104,7 +104,7 @@ docker run -p 8080:8080 \
 
 ### Деплой на сервер (GitHub Actions)
 
-Для хостинга без Docker — workflow `.github/workflows/deploy.yml`, запускается вручную (Actions → Deploy → Run workflow). Он собирает фронт в `wwwroot`, прогоняет тесты, публикует бэкенд как self-contained приложение под `linux-x64` (на сервере .NET не нужен) и копирует его по SSH.
+Для хостинга без Docker — workflow `.github/workflows/deploy.yml`, запускается вручную (Actions → Deploy → Run workflow). Сначала он запускает тесты (`.github/workflows/tests.yml`; их можно запустить и отдельно: Actions → Tests → Run workflow), затем собирает фронт в `wwwroot`, публикует бэкенд как self-contained приложение под `linux-x64` (на сервере .NET не нужен) и копирует его по SSH.
 
 Секреты репозитория (Settings → Secrets and variables → Actions):
 
