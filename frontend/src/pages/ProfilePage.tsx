@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { api, errorMessage, unwrap } from '../api/client'
+import { ApiError, api, errorMessage, unwrap } from '../api/client'
 import { useAuth, useMe } from '../auth/context'
 import { CopyButton, ErrorText } from '../components/common'
 import { limits } from '../limits'
@@ -64,6 +64,71 @@ function ProfileForm({ submitLabel, onSaved }: { submitLabel: string; onSaved?: 
   )
 }
 
+function PasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [saved, setSaved] = useState(false)
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    setSaved(false)
+    try {
+      await unwrap(api.POST('/api/account/password', { body: { currentPassword, newPassword } }))
+      setCurrentPassword('')
+      setNewPassword('')
+      setSaved(true)
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 403) setError('Неверный текущий пароль')
+      else setError(errorMessage(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form className="stack" onSubmit={submit}>
+      <h2>Пароль</h2>
+      <label className="field">
+        <span>Текущий пароль</span>
+        <input
+          type="password"
+          name="currentPassword"
+          autoComplete="current-password"
+          required
+          maxLength={limits.passwordMax}
+          value={currentPassword}
+          onChange={(event) => setCurrentPassword(event.target.value)}
+        />
+      </label>
+      <label className="field">
+        <span>Новый пароль</span>
+        <input
+          type="password"
+          name="newPassword"
+          autoComplete="new-password"
+          required
+          minLength={limits.passwordMin}
+          maxLength={limits.passwordMax}
+          value={newPassword}
+          onChange={(event) => setNewPassword(event.target.value)}
+        />
+        <small className="muted">Не короче {limits.passwordMin} символов</small>
+      </label>
+      <ErrorText error={error} />
+      <div>
+        <button type="submit" className="button" disabled={busy}>
+          Сменить пароль
+        </button>
+      </div>
+      {saved && <p className="success">Пароль изменён</p>}
+    </form>
+  )
+}
+
 // Registration creates only the account; the profile is a separate step, like "What's your name?" in Telegram.
 export function WelcomePage() {
   return (
@@ -101,6 +166,9 @@ export function ProfilePage() {
       <section className="card">
         <ProfileForm submitLabel="Сохранить" onSaved={() => setSaved(true)} />
         {saved && <p className="success">Сохранено</p>}
+      </section>
+      <section className="card">
+        <PasswordForm />
       </section>
     </div>
   )

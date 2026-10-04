@@ -28,6 +28,7 @@ public sealed class DomainExceptionHandler : IExceptionHandler
             AccessTokenNotFoundException => (StatusCodes.Status404NotFound, "Access token not found"),
             InvalidCredentialsException => (StatusCodes.Status401Unauthorized, "Invalid credentials"),
             AccessDeniedException => (StatusCodes.Status403Forbidden, "Access denied"),
+            IncorrectPasswordException => (StatusCodes.Status403Forbidden, "Incorrect password"),
             DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             ChatsDomain.ChatNotFoundException => (StatusCodes.Status404NotFound, "Chat not found"),
             ChatsDomain.ParticipantNotFoundException => (StatusCodes.Status404NotFound, "Account not found"),
