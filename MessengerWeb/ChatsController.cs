@@ -102,6 +102,21 @@ public class ChatsController : ControllerBase
         return NoContent();
     }
 
+    // Everything up to and including seq is read. The mark only moves forward:
+    // a smaller seq than the stored one is accepted and changes nothing.
+    [HttpPost("{chatId:guid}/read")]
+    public async Task<IActionResult> MarkRead(
+        Guid chatId,
+        MarkChatReadRequest request)
+    {
+        await _mediator.Send(new MarkChatReadCommand(
+            User.GetAccountId(),
+            chatId,
+            request.Seq!.Value));
+
+        return NoContent();
+    }
+
     [HttpGet("{chatId:guid}/messages")]
     public async Task<ActionResult<IReadOnlyList<MessageResult>>> GetMessages(
         Guid chatId,
@@ -224,6 +239,11 @@ public sealed record AddChatMemberRequest(
 public sealed record ChangeChatMemberRoleRequest(
     [Required]
     ChatRole? Role
+);
+
+public sealed record MarkChatReadRequest(
+    [Required, Range(0, long.MaxValue)]
+    long? Seq
 );
 
 // Text, files or a voice message: at least one of them.

@@ -9,6 +9,8 @@ public sealed record ChatResult(
     IReadOnlyList<ChatMemberResult> Members,
     long LastMessageSeq,
     DateTime? LastMessageAt,
+    long LastReadSeq,
+    long UnreadCount,
     DateTime CreatedAt
 );
 

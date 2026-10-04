@@ -9,13 +9,16 @@ public sealed class CreateDirectChatHandler
 {
     private readonly IChatRepository _chatRepository;
     private readonly ParticipantLookup _participants;
+    private readonly IPublisher _publisher;
 
     public CreateDirectChatHandler(
         IChatRepository chatRepository,
-        ParticipantLookup participants)
+        ParticipantLookup participants,
+        IPublisher publisher)
     {
         _chatRepository = chatRepository;
         _participants = participants;
+        _publisher = publisher;
     }
 
 
@@ -45,6 +48,8 @@ public sealed class CreateDirectChatHandler
 
             return new CreateChatResult(existing!.Id);
         }
+
+        await _publisher.PublishDomainEvents(chat, cancellationToken);
 
 
         return new CreateChatResult(chat.Id);

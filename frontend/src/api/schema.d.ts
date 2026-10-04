@@ -509,6 +509,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chats/{chatId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chatId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["MarkChatReadRequest"];
+                    "text/json": components["schemas"]["MarkChatReadRequest"];
+                    "application/*+json": components["schemas"]["MarkChatReadRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/chats/{chatId}/messages": {
         parameters: {
             query?: never;
@@ -1013,6 +1054,10 @@ export interface components {
             lastMessageSeq: number;
             /** Format: date-time */
             lastMessageAt?: string | null;
+            /** Format: int64 */
+            lastReadSeq: number;
+            /** Format: int64 */
+            unreadCount: number;
             /** Format: date-time */
             createdAt: string;
         };
@@ -1061,6 +1106,10 @@ export interface components {
             accessToken: string;
             /** Format: date-time */
             expiresAt: string;
+        };
+        MarkChatReadRequest: {
+            /** Format: int64 */
+            seq?: number | null;
         };
         MeResult: {
             /** Format: uuid */

@@ -8,16 +8,21 @@ public sealed class ChatResultBuilder
 {
     private readonly IUsersApi _usersApi;
     private readonly IChatRepository _chatRepository;
+    private readonly IReadMarkRepository _readMarkRepository;
 
     public ChatResultBuilder(
         IUsersApi usersApi,
-        IChatRepository chatRepository)
+        IChatRepository chatRepository,
+        IReadMarkRepository readMarkRepository)
     {
         _usersApi = usersApi;
         _chatRepository = chatRepository;
+        _readMarkRepository = readMarkRepository;
     }
 
+    // viewerId: whose read marks to show.
     public async Task<IReadOnlyList<ChatResult>> Build(
+        Guid viewerId,
         IReadOnlyList<Chat> chats,
         CancellationToken cancellationToken)
     {
@@ -30,13 +35,25 @@ public sealed class ChatResultBuilder
         var accounts = (await _usersApi.GetAccounts(userIds, cancellationToken))
             .ToDictionary(x => x.AccountId);
 
+        var chatIds = chats.Select(x => x.Id).ToArray();
+
         var activity = await _chatRepository
-            .GetActivity(chats.Select(x => x.Id).ToArray(), cancellationToken);
+            .GetActivity(chatIds, cancellationToken);
+
+        var readMarks = await _readMarkRepository
+            .GetForMember(viewerId, chatIds, cancellationToken);
 
         return chats
             .Select(chat =>
             {
                 var chatActivity = activity.GetValueOrDefault(chat.Id);
+
+                var lastSeq = chatActivity?.LastMessageSeq ?? 0;
+
+                // Members who joined before read marks existed have none: their history counts as read.
+                var lastReadSeq = readMarks.TryGetValue(chat.Id, out var mark)
+                    ? Math.Min(mark, lastSeq)
+                    : lastSeq;
 
                 return new ChatResult(
                     chat.Id,
@@ -55,8 +72,11 @@ public sealed class ChatResultBuilder
                                 member.JoinedAt);
                         })
                         .ToArray(),
-                    chatActivity?.LastMessageSeq ?? 0,
+                    lastSeq,
                     chatActivity?.LastMessageAt,
+                    lastReadSeq,
+                    // Seq numbers skipped by failed sends are counted too: a rare overcount, not worth a query.
+                    lastSeq - lastReadSeq,
                     chat.CreatedAt);
             })
             .ToArray();

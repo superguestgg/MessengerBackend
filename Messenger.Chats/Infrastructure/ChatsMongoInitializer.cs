@@ -1,4 +1,5 @@
 using Messenger.Chats.Domain;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace Messenger.Chats.Infrastructure;
@@ -39,6 +40,19 @@ public static class ChatsMongoInitializer
 
         await messages.Indexes.CreateOneAsync(
             seqIndex,
+            cancellationToken: cancellationToken);
+
+
+        var readMarks = database.GetCollection<BsonDocument>(ReadMarkRepository.CollectionName);
+
+        var readMarkIndex = new CreateIndexModel<BsonDocument>(
+            Builders<BsonDocument>.IndexKeys
+                .Ascending(ReadMarkRepository.UserIdElement)
+                .Ascending(ReadMarkRepository.ChatIdElement),
+            new CreateIndexOptions { Unique = true, Name = "ux_read_marks_user_chat" });
+
+        await readMarks.Indexes.CreateOneAsync(
+            readMarkIndex,
             cancellationToken: cancellationToken);
     }
 }
