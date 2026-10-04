@@ -9,7 +9,7 @@ namespace Messenger.Chats;
 
 public static class ChatsModule
 {
-    // Requires AddMongo(), AddMediator() and an IUsersApi implementation (AddUsers()) from the host.
+    // Requires AddMongo(), AddMediator() and implementations of IUsersApi (AddUsers()) and IFilesApi (AddFiles()) from the host.
     public static IServiceCollection AddChats(
         this IServiceCollection services)
     {

@@ -13,6 +13,7 @@
     <ItemGroup>
       <ProjectReference Include="..\Messenger.Infrastructure.Mongo\Messenger.Infrastructure.Mongo.csproj" />
       <ProjectReference Include="..\Messenger.Users.Contracts\Messenger.Users.Contracts.csproj" />
+      <ProjectReference Include="..\Messenger.Files.Contracts\Messenger.Files.Contracts.csproj" />
     </ItemGroup>
 
 </Project>

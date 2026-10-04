@@ -37,10 +37,25 @@ public sealed class MessageResultBuilder
                     x.AuthorId,
                     author?.DisplayName,
                     author?.IsBot ?? false,
-                    x.Text.Value,
+                    x.Text?.Value,
+                    x.Attachments.Select(BuildAttachment).ToArray(),
                     x.ReplyToSeq,
                     x.CreatedAt);
             })
             .ToArray();
+    }
+
+    private static AttachmentResult BuildAttachment(Attachment attachment)
+    {
+        return new AttachmentResult(
+            attachment.FileId,
+            attachment.Kind,
+            attachment.FileName,
+            attachment.ContentType,
+            attachment.Size,
+            attachment.DurationSeconds,
+            attachment.Transcript != null
+                ? new TranscriptResult(attachment.Transcript.Status, attachment.Transcript.Text)
+                : null);
     }
 }

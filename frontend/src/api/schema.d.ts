@@ -625,6 +625,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chats/{chatId}/messages/{seq}/attachments/{fileId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chatId: string;
+                    seq: number;
+                    fileId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/octet-stream": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "multipart/form-data": {
+                        /** Format: binary */
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["UploadFileResult"];
+                        "application/json": components["schemas"]["UploadFileResult"];
+                        "text/json": components["schemas"]["UploadFileResult"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/me": {
         parameters: {
             query?: never;
@@ -882,6 +965,20 @@ export interface components {
             /** Format: uuid */
             userId: string;
         };
+        /** @enum {string} */
+        AttachmentKind: "File" | "Image" | "Voice";
+        AttachmentResult: {
+            /** Format: uuid */
+            fileId: string;
+            kind: components["schemas"]["AttachmentKind"];
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            size: number;
+            /** Format: int32 */
+            durationSeconds?: number | null;
+            transcript?: components["schemas"]["TranscriptResult"] | null;
+        };
         BotResult: {
             /** Format: uuid */
             botId: string;
@@ -986,7 +1083,8 @@ export interface components {
             authorId: string;
             authorName?: string | null;
             authorIsBot: boolean;
-            text: string;
+            text?: string | null;
+            attachments: components["schemas"]["AttachmentResult"][];
             /** Format: int64 */
             replyToSeq?: number | null;
             /** Format: date-time */
@@ -1011,7 +1109,9 @@ export interface components {
             accountId: string;
         };
         SendMessageRequest: {
-            text: string;
+            text?: string | null;
+            fileIds?: string[] | null;
+            voice?: components["schemas"]["SendVoiceRequest"] | null;
             /** Format: int64 */
             replyToSeq?: number | null;
         };
@@ -1025,9 +1125,29 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        SendVoiceRequest: {
+            /** Format: uuid */
+            fileId: string;
+            /** Format: int32 */
+            durationSeconds: number;
+        };
+        TranscriptResult: {
+            status: components["schemas"]["TranscriptStatus"];
+            text?: string | null;
+        };
+        /** @enum {string} */
+        TranscriptStatus: "None" | "Pending" | "Done" | "Failed";
         UpdateProfileRequest: {
             displayName: string;
             bio?: string | null;
+        };
+        UploadFileResult: {
+            /** Format: uuid */
+            fileId: string;
+            fileName: string;
+            contentType: string;
+            /** Format: int64 */
+            size: number;
         };
         UserSearchResult: {
             /** Format: uuid */

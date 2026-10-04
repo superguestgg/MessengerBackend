@@ -4,7 +4,7 @@
 
 Бэкенд мессенджера на .NET 10. Модульный монолит: одно приложение, разделённое на независимые модули, внутри модулей — DDD.
 
-Готовы модули **Users** (аккаунты людей и ботов, вход по JWT и токенам доступа, профили) и **Chats** (личные и групповые чаты, сообщения), MCP-сервер для агентов и веб-клиент в [`frontend/`](frontend/README.md).
+Готовы модули **Users** (аккаунты людей и ботов, вход по JWT и токенам доступа, профили), **Chats** (личные и групповые чаты, сообщения с вложениями и голосовыми) и **Files** (загрузка и хранение файлов), MCP-сервер для агентов и веб-клиент в [`frontend/`](frontend/README.md).
 
 ## Стек
 
@@ -116,8 +116,11 @@ Messenger.sln
 │   └── UsersModule.cs               — AddUsers() / InitializeUsers()
 ├── Messenger.Users.Contracts        — что другие модули могут спросить у Users (IUsersApi)
 ├── Messenger.Chats                  — модуль Chats: чаты и сообщения, та же структура папок
+├── Messenger.Files                  — модуль Files: загруженные файлы (GridFS), та же структура папок
+├── Messenger.Files.Contracts        — что другие модули могут спросить у Files (IFilesApi)
 ├── Messenger.Users.Tests            — unit-тесты модуля Users (xUnit)
-└── Messenger.Chats.Tests            — unit-тесты модуля Chats (xUnit)
+├── Messenger.Chats.Tests            — unit-тесты модуля Chats (xUnit)
+└── Messenger.Files.Tests            — unit-тесты модуля Files (xUnit)
 ```
 
 ## Архитектура
@@ -128,16 +131,20 @@ Messenger.sln
 graph TD
     Web[MessengerWeb<br/>хост] --> Users[Messenger.Users<br/>модуль]
     Web --> Chats[Messenger.Chats<br/>модуль]
+    Web --> Files[Messenger.Files<br/>модуль]
     Web --> Mongo[Messenger.Infrastructure.Mongo<br/>общая техника]
     Users --> Contracts[Messenger.Users.Contracts<br/>IUsersApi]
     Chats --> Contracts
+    Files --> FilesContracts[Messenger.Files.Contracts<br/>IFilesApi]
+    Chats --> FilesContracts
     Users --> Mongo
     Chats --> Mongo
+    Files --> Mongo
 ```
 
 - **Хост** (`MessengerWeb`) только собирает приложение: вызывает `AddMongo()`, `AddMediator()`, затем `AddXxx()` каждого модуля и отдаёт HTTP.
 - **Mediator** один на всё приложение: source generator стоит только в хосте и находит handler-ы во всех модулях, на которые хост ссылается. Генератор в модуле создал бы второй, конфликтующий набор типов.
-- **Chats ссылается на `Messenger.Users.Contracts`, а не на `Messenger.Users`.** Реализация `IUsersApi` лежит в Users и регистрируется в `AddUsers()`.
+- **Chats ссылается на `Messenger.Users.Contracts` и `Messenger.Files.Contracts`, а не на сами модули.** Реализация `IUsersApi` лежит в Users и регистрируется в `AddUsers()`, `IFilesApi` — в Files (`AddFiles()`).
 - **Модуль** — один проект со слоями-папками. Модуль владеет своими данными: свои коллекции, репозитории, маппинг. Другие модули не лезут в его репозитории.
 - **`Messenger.Infrastructure.Mongo`** — общая техника, которая ничего не знает о предметной области: клиент, база, сериализатор `Guid`. Хранилище конкретного модуля сюда не переносится.
 
@@ -214,6 +221,19 @@ graph TD
 - **Номер сообщения `Seq`** растёт внутри чата. Его выдаёт атомарный `$inc` в `chat_message_counters`, уникальный индекс `(ChatId, Seq)` страхует от повторов. Счётчик вынесен из документа чата, чтобы отправка сообщений не конфликтовала с изменением участников. Если запись сообщения упала после выдачи номера, номер пропускается — клиенты не должны рассчитывать на номера без пропусков.
 - **Изменения участников — с оптимистичной блокировкой** (`Chat.Version`): при одновременной правке один запрос получит 409 и повторит, изменения не теряются.
 - **Сообщение хранит только `AuthorId`**; имя автора и признак бота подставляются при чтении одним пакетным запросом в `IUsersApi`. Ответ на сообщение — `ReplyToSeq`.
+- **Вложения** — `Message.Attachments`: `{ FileId, Kind: File | Image | Voice, FileName, ContentType, Size, DurationSeconds?, Transcript? }`. Сам файл живёт в модуле Files, его метаданные копируются в сообщение: файл после загрузки не меняется. Правила — в `MessageContent`: есть текст или вложения, вложений до 10 и без повторов, голосовое — одно, без подписи и других файлов. `Image` — только `png`, `jpeg`, `gif`, `webp` (SVG может содержать скрипты); прикрепить можно только свой файл. `MessageContent` собирается до выдачи номера, поэтому отклонённое сообщение не оставляет дыры в нумерации.
+- **Голосовое** — вложение `Voice` с длительностью от клиента (до 5 минут) и `Transcript { Status, Text? }`. Распознавания речи пока нет, статус всегда `None`; поле заложено, чтобы расшифровка включилась без изменения API (план — [docs/FILES.md](docs/FILES.md)).
+- **Скачивание вложения** проверяет доступ через сообщение: участник чата получает файл, только если он прикреплён к этому сообщению. Картинки и голосовые отдаются `inline`, остальное — `attachment` и `application/octet-stream`: фронт может раздаваться с того же домена, и загруженный HTML не должен открываться как страница. Всегда `X-Content-Type-Options: nosniff`, поддерживаются Range-запросы.
+
+### Модуль Files
+
+Один агрегат `StoredFile` — загруженный файл: владелец, имя, тип, размер, `CreatedAt`, `AttachedAt?`. Метаданные — в коллекции `stored_files`, байты — в GridFS-бакете `file_contents` (`file_contents.files`, `file_contents.chunks`) под тем же `Guid`. GridFS спрятан за `IFileStorage`, его можно заменить на S3-совместимое хранилище. Почему GridFS и что дальше — в [docs/FILES.md](docs/FILES.md).
+
+- **Загрузка отдельным шагом**: `POST /api/files` → `fileId`, затем сообщение с `fileIds` или `voice`. Номер сообщения выдаётся до записи, и долгая загрузка внутри отправки оставила бы «молодую» дыру дольше 5 секунд — ожидающие перепрыгнули бы через сообщение.
+- **Лимит** — 1 МБ на файл (`StoredFile.MaxSize`), больше — 413. Запрос намного больше лимита обрывается ещё при чтении формы — 400. Пустой файл — 400.
+- **Имя и тип нормализуются**: от имени остаётся последний сегмент пути без управляющих символов (до 255), тип — `type/subtype` в нижнем регистре без параметров (`audio/webm;codecs=opus` → `audio/webm`), без типа — `application/octet-stream`.
+- **Неприкреплённые файлы удаляются**: `AbandonedFilesCleanup` раз в час (и при старте) удаляет файлы, которые за 24 часа ни к чему не прикрепили. Сначала байты, потом метаданные — прерванная уборка найдёт файл снова.
+- **`IFilesApi`** для других модулей: свои файлы аккаунта по id, «пометить прикреплёнными», открыть поток на чтение. Файлы помечаются прикреплёнными до выдачи номера сообщения; если запись сообщения после этого упадёт, файл останется прикреплённым ни к чему и не удалится — это редкий и безвредный случай.
 
 ### Ожидание сообщений (long polling)
 
@@ -234,8 +254,10 @@ graph TD
 | `list_chats` | `{ chats }` — мои чаты, последние активные первыми |
 | `open_direct_chat` | `{ chatId }` личного чата с аккаунтом (бот — только с владельцем) |
 | `read_messages` | `{ messages }` — `after` / `before` / `limit`, как в REST |
-| `send_message` | отправить, вернёт `seq` — по нему потом ждать ответ |
+| `send_message` | отправить текст, вернёт `seq` — по нему потом ждать ответ |
 | `wait_for_reply` | ожидание с фильтрами `fromUserId` и `replyToSeq`; `{ messages, nextAfterSeq, timedOut }` |
+
+Сообщения в `read_messages` и `wait_for_reply` приходят с вложениями: у голосового `text` пустой, а текст будет в `attachments[].transcript` (пока распознавание выключено — статус `None`). Сам файл агент скачивает по REST тем же токеном: `GET /api/chats/{chatId}/messages/{seq}/attachments/{fileId}`. Отправлять файлы через MCP пока нельзя.
 
 Инструменты — тонкие обёртки над теми же handler-ами Mediator, что и контроллеры (`MessengerWeb/Mcp/MessengerTools.cs`). Ошибки домена приходят агенту как ошибка инструмента с текстом причины (SDK при этом пишет их в лог уровнем error); остальные исключения — без подробностей. Результаты — структурированные (`outputSchema`); `null`-поля не выбрасываются, иначе строгие клиенты отвергают ответ.
 
@@ -277,11 +299,12 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 | `InvalidCredentialsException` | 401 |
 | `AccessDeniedException` | 403 |
 | `EmailAlreadyTakenException` | 409 |
-| `AccountNotFoundException`, `AccessTokenNotFoundException`, `ChatNotFoundException`, `ParticipantNotFoundException` | 404 |
+| `AccountNotFoundException`, `AccessTokenNotFoundException`, `ChatNotFoundException`, `ParticipantNotFoundException`, `AttachmentNotFoundException` | 404 |
+| `FileTooLargeException` | 413 |
 | `ChatAccessDeniedException` | 403 |
 | `ChatConcurrencyException` | 409 — повторить запрос |
 | `TooManyWaitsException` | 429 |
-| любое другое `DomainException` (Users и Chats) | 400 |
+| любое другое `DomainException` (Users, Chats и Files) | 400 |
 | всё остальное | 500 (без стектрейса) |
 
 ## Правила архитектуры
@@ -345,10 +368,12 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 | `DELETE` | `/api/chats/{chatId}/members/{userId}` | удалить из группы; свой id — выйти | 204, 400, 403, 404, 409 |
 | `PUT` | `/api/chats/{chatId}/members/{userId}/role` | `{ role: "Admin" \| "Member" }` | 204, 400, 403, 404, 409 |
 | `GET` | `/api/chats/{chatId}/messages` | `?after=N` — новее N, `?before=N` — старше N, без них — последние; `limit` 1–100, по умолчанию 50; по возрастанию `seq` | 200, 400, 404 |
-| `POST` | `/api/chats/{chatId}/messages` | `{ text, replyToSeq? }` → `{ messageId, chatId, seq, createdAt }` | 200, 400, 404 |
+| `POST` | `/api/chats/{chatId}/messages` | `{ text?, fileIds?, voice?: { fileId, durationSeconds }, replyToSeq? }` → `{ messageId, chatId, seq, createdAt }`; текст, файлы или голосовое | 200, 400, 404 |
+| `GET` | `/api/chats/{chatId}/messages/{seq}/attachments/{fileId}` | содержимое вложения; Range-запросы | 200, 206, 404 |
+| `POST` | `/api/files` | multipart, поле `file` → `{ fileId, fileName, contentType, size }`; дальше `fileId` идёт в сообщение | 200, 400, 413 |
 | `GET` | `/api/chats/{chatId}/messages/wait` | long polling: `?after=N` (обязательно), `from?`, `replyTo?`, `timeout` 0–50 с (по умолчанию 30) → `{ messages, nextAfterSeq }` | 200, 400, 404, 429 |
 
-Ограничения: email до 254 символов, пароль 8–128, имя 1–64, bio до 500, имя токена 1–64, название чата 1–128, сообщение 1–4096 и не из одних пробелов. Перечисления в JSON — строками (`"type": "Bot"`).
+Ограничения: email до 254 символов, пароль 8–128, имя 1–64, bio до 500, имя токена 1–64, название чата 1–128, сообщение 1–4096 и не из одних пробелов, файл до 1 МБ, вложений в сообщении до 10, голосовое 1–300 с. Перечисления в JSON — строками (`"type": "Bot"`).
 
 ## Как добавить модуль
 
@@ -367,6 +392,7 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 - Тесты — только unit-тесты домена; интеграционных тестов против Mongo пока нет.
 - Поиск по имени сканирует профили без индекса и ищет только по началу слова.
 - Нет редактирования и удаления сообщений, отметок о прочтении и real-time для фронта; новые сообщения — через `?after=N` или ожидание в конкретном чате.
+- Голосовые не расшифровываются: `Transcript.Status` всегда `None`. План — в [docs/FILES.md](docs/FILES.md). Файлы через MCP не отправляются, превью картинок нет, длительность голосового сервер берёт у клиента.
 - Нет общего потока событий по всем чатам (`/api/updates`) — отложен до real-time.
 - Сигналы ожидания работают в пределах одного процесса; при нескольких экземплярах ответ придёт с задержкой до 5 с.
 - Впереди: real-time через SignalR. Целевой результат и план по шагам — в [docs/ROADMAP.md](docs/ROADMAP.md).

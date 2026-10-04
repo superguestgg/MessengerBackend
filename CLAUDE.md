@@ -26,6 +26,7 @@ dotnet build Messenger.sln -m:1 -nodeReuse:false -p:UseSharedCompilation=false -
 ```bash
 dotnet test Messenger.Users.Tests --no-build
 dotnet test Messenger.Chats.Tests --no-build
+dotnet test Messenger.Files.Tests --no-build
 ```
 
 Фронтенд:
@@ -43,7 +44,7 @@ npm run build:host   # сборка в MessengerWeb/wwwroot: фронт разд
 - `frontend` — фронтенд, отдельный npm-проект; в `.sln` не входит.
 - `MessengerWeb` — хост: `Program.cs`, контроллеры, MCP-инструменты (`Mcp/`), `DomainExceptionHandler`. Бизнес-логики здесь нет: и контроллеры, и MCP-инструменты только отправляют команды в Mediator.
 - `Messenger.<Module>.Tests` — unit-тесты модуля (xUnit); новые правила домена покрывай тестами там.
-- `Messenger.Users.Contracts` — `IUsersApi` для других модулей; реализация в `Messenger.Users`.
+- `Messenger.Users.Contracts` — `IUsersApi` для других модулей; реализация в `Messenger.Users`. Так же `Messenger.Files.Contracts` — `IFilesApi`, реализация в `Messenger.Files`.
 - `Messenger.Infrastructure.Mongo` — общая техника (`AddMongo()`): клиент, база, сериализатор `Guid`. Ничего не знает о предметной области.
 - `Messenger.<Module>` — модуль = bounded context, один проект с папками `Domain` / `Application` / `Infrastructure` и `<Module>Module.cs`. Делить модуль на несколько проектов **не нужно** — решение принято.
 - `Dockerfile` — образ с бэкендом и собранным фронтом, без MongoDB (база внешняя). Новый проект, на который ссылается `MessengerWeb`, впиши в слой restore (`COPY …csproj`), иначе образ не соберётся.

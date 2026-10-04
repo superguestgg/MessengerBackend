@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using Messenger.Chats;
+using Messenger.Files;
 using Messenger.Infrastructure.Mongo;
 using Messenger.Users;
 using Messenger.Users.Application;
@@ -43,6 +44,7 @@ builder.Services.AddMongo(builder.Configuration);
 builder.Services.AddMediator(options => options.ServiceLifetime = ServiceLifetime.Scoped);
 
 builder.Services.AddUsers(builder.Configuration);
+builder.Services.AddFiles();
 builder.Services.AddChats();
 
 // MCP for agents at /mcp: stateless Streamable HTTP, the same bearer tokens as the REST API.
@@ -95,6 +97,7 @@ builder.Services.AddRateLimiter(options =>
 var app = builder.Build();
 
 await app.Services.InitializeUsers();
+await app.Services.InitializeFiles();
 await app.Services.InitializeChats();
 
 app.UseExceptionHandler();
