@@ -1,6 +1,7 @@
 using Messenger.Users.Domain;
 using Messenger.Chats.Application;
 using ChatsDomain = Messenger.Chats.Domain;
+using FilesDomain = Messenger.Files.Domain;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -30,9 +31,12 @@ public sealed class DomainExceptionHandler : IExceptionHandler
             DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             ChatsDomain.ChatNotFoundException => (StatusCodes.Status404NotFound, "Chat not found"),
             ChatsDomain.ParticipantNotFoundException => (StatusCodes.Status404NotFound, "Account not found"),
+            ChatsDomain.AttachmentNotFoundException => (StatusCodes.Status404NotFound, "File not found"),
             ChatsDomain.ChatAccessDeniedException => (StatusCodes.Status403Forbidden, "Access denied"),
             ChatsDomain.ChatConcurrencyException => (StatusCodes.Status409Conflict, "Concurrent change"),
             ChatsDomain.DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
+            FilesDomain.FileTooLargeException => (StatusCodes.Status413PayloadTooLarge, "File too large"),
+            FilesDomain.DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             TooManyWaitsException => (StatusCodes.Status429TooManyRequests, "Too many waits"),
             _ => (0, null)
         };

@@ -29,6 +29,20 @@ export function displayName(name: string | null | undefined, id: string) {
   return name != null && name !== '' ? name : `Без имени · ${shortId(id)}`
 }
 
+// formatDuration(75) → "1:15"
+export function formatDuration(seconds: number) {
+  const whole = Math.max(0, Math.round(seconds))
+  return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`
+}
+
+const decimal = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 })
+
+export function formatSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} Б`
+  if (bytes < 1024 * 1024) return `${decimal.format(bytes / 1024)} КБ`
+  return `${decimal.format(bytes / (1024 * 1024))} МБ`
+}
+
 const plurals = new Intl.PluralRules('ru-RU')
 
 // pluralize(3, ['участник', 'участника', 'участников']) → "3 участника"

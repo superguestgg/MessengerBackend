@@ -142,7 +142,7 @@ public class Chat : AggregateRoot
     // The sequence number is allocated by the repository before the call; the chat checks the rest.
     public Message PostMessage(
         Guid authorId,
-        MessageText text,
+        MessageContent content,
         long seq,
         Message? replyTo)
     {
@@ -151,7 +151,7 @@ public class Chat : AggregateRoot
         if (replyTo != null && replyTo.ChatId != Id)
             throw new DomainException("A reply must refer to a message in the same chat.");
 
-        return Message.Create(Id, seq, authorId, text, replyTo?.Seq);
+        return Message.Create(Id, seq, authorId, content, replyTo?.Seq);
     }
 
     public void EnsureMember(Guid userId)

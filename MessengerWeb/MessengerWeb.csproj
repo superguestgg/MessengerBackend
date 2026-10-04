@@ -22,6 +22,7 @@
       <ProjectReference Include="..\Messenger.Infrastructure.Mongo\Messenger.Infrastructure.Mongo.csproj" />
       <ProjectReference Include="..\Messenger.Users\Messenger.Users.csproj" />
       <ProjectReference Include="..\Messenger.Chats\Messenger.Chats.csproj" />
+      <ProjectReference Include="..\Messenger.Files\Messenger.Files.csproj" />
     </ItemGroup>
 
 </Project>

@@ -2,6 +2,9 @@ namespace Messenger.Chats.Domain;
 
 public class Message : AggregateRoot
 {
+    // Not readonly: the Mongo driver sets it when loading a message.
+    private List<Attachment> _attachments = new();
+
     private Message()
     {
     }
@@ -11,7 +14,7 @@ public class Message : AggregateRoot
         Guid chatId,
         long seq,
         Guid authorId,
-        MessageText text,
+        MessageContent content,
         long? replyToSeq)
     {
         var message = new Message
@@ -20,10 +23,12 @@ public class Message : AggregateRoot
             ChatId = chatId,
             Seq = seq,
             AuthorId = authorId,
-            Text = text,
+            Text = content.Text,
             ReplyToSeq = replyToSeq,
             CreatedAt = DateTime.UtcNow
         };
+
+        message._attachments.AddRange(content.Attachments);
 
         message.Raise(new MessageSent(chatId, seq, authorId));
 
@@ -40,7 +45,10 @@ public class Message : AggregateRoot
     // Only the id: the author's name is looked up when messages are read.
     public Guid AuthorId { get; private set; }
 
-    public MessageText Text { get; private set; } = null!;
+    // Null when the message is only attachments, e.g. a voice message.
+    public MessageText? Text { get; private set; }
+
+    public IReadOnlyList<Attachment> Attachments => _attachments;
 
     public long? ReplyToSeq { get; private set; }
 

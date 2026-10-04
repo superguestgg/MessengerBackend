@@ -171,6 +171,44 @@ Content-Type: application/json
   "replyToSeq": 1
 }
 
+### Upload a file (up to 1 MB): 200 { fileId, fileName, contentType, size }; 413 if larger
+POST {{MessengerWeb_HostAddress}}/api/files
+Authorization: Bearer {{jwt}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="hello.txt"
+Content-Type: text/plain
+
+Hello, file!
+--boundary--
+
+###
+@fileId = paste-file-id-from-upload
+
+### Send the uploaded file with a caption
+POST {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "text": "See attached",
+  "fileIds": ["{{fileId}}"]
+}
+
+### Send an uploaded audio file as a voice message: no text, no other files
+POST {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages
+Authorization: Bearer {{jwt}}
+Content-Type: application/json
+
+{
+  "voice": { "fileId": "{{fileId}}", "durationSeconds": 5 }
+}
+
+### Download an attachment of message #3
+GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages/3/attachments/{{fileId}}
+Authorization: Bearer {{jwt}}
+
 ### Latest messages
 GET {{MessengerWeb_HostAddress}}/api/chats/{{chatId}}/messages?limit=50
 Authorization: Bearer {{jwt}}

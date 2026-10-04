@@ -6,6 +6,8 @@ public class ChatTests
 {
     private static ChatParticipant User() => new(Guid.NewGuid(), false, null);
 
+    private static MessageContent Text(string value) => new(new MessageText(value), []);
+
     private static ChatParticipant BotOf(ChatParticipant owner) => new(Guid.NewGuid(), true, owner.UserId);
 
     private static Chat Group(ChatParticipant owner, params ChatParticipant[] members)
@@ -167,7 +169,7 @@ public class ChatTests
         var alice = User();
         var chat = Chat.CreateDirect(alice, User());
 
-        var message = chat.PostMessage(alice.UserId, new MessageText("hi"), 1, null);
+        var message = chat.PostMessage(alice.UserId, Text("hi"), 1, null);
 
         Assert.Equal(chat.Id, message.ChatId);
         Assert.Equal(1, message.Seq);
@@ -175,7 +177,7 @@ public class ChatTests
         Assert.Null(message.ReplyToSeq);
         var sent = Assert.IsType<MessageSent>(Assert.Single(message.DomainEvents));
         Assert.Equal((chat.Id, 1L, alice.UserId), (sent.ChatId, sent.Seq, sent.AuthorId));
-        Assert.Throws<ChatNotFoundException>(() => chat.PostMessage(Guid.NewGuid(), new MessageText("hi"), 2, null));
+        Assert.Throws<ChatNotFoundException>(() => chat.PostMessage(Guid.NewGuid(), Text("hi"), 2, null));
     }
 
     [Fact]
@@ -184,13 +186,13 @@ public class ChatTests
         var alice = User();
         var chat = Chat.CreateDirect(alice, User());
         var other = Chat.CreateDirect(alice, User());
-        var question = chat.PostMessage(alice.UserId, new MessageText("?"), 1, null);
-        var foreign = other.PostMessage(alice.UserId, new MessageText("?"), 1, null);
+        var question = chat.PostMessage(alice.UserId, Text("?"), 1, null);
+        var foreign = other.PostMessage(alice.UserId, Text("?"), 1, null);
 
-        var reply = chat.PostMessage(alice.UserId, new MessageText("!"), 2, question);
+        var reply = chat.PostMessage(alice.UserId, Text("!"), 2, question);
 
         Assert.Equal(1, reply.ReplyToSeq);
-        Assert.Throws<DomainException>(() => chat.PostMessage(alice.UserId, new MessageText("!"), 3, foreign));
+        Assert.Throws<DomainException>(() => chat.PostMessage(alice.UserId, Text("!"), 3, foreign));
     }
 
     [Theory]

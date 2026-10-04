@@ -13,9 +13,11 @@ public class ContiguousMessagesTests
         _chat = Chat.CreateDirect(_alice, new ChatParticipant(Guid.NewGuid(), false, null));
     }
 
+    private static MessageContent Text(string value) => new(new MessageText(value), []);
+
     private Message Message(long seq)
     {
-        return _chat.PostMessage(_alice.UserId, new MessageText($"#{seq}"), seq, null);
+        return _chat.PostMessage(_alice.UserId, Text($"#{seq}"), seq, null);
     }
 
     private static DateTime Soon => DateTime.UtcNow;

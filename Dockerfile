@@ -17,6 +17,8 @@ COPY Messenger.Infrastructure.Mongo/Messenger.Infrastructure.Mongo.csproj Messen
 COPY Messenger.Users/Messenger.Users.csproj Messenger.Users/
 COPY Messenger.Users.Contracts/Messenger.Users.Contracts.csproj Messenger.Users.Contracts/
 COPY Messenger.Chats/Messenger.Chats.csproj Messenger.Chats/
+COPY Messenger.Files/Messenger.Files.csproj Messenger.Files/
+COPY Messenger.Files.Contracts/Messenger.Files.Contracts.csproj Messenger.Files.Contracts/
 RUN dotnet restore MessengerWeb/MessengerWeb.csproj
 COPY . .
 COPY --from=frontend /src/MessengerWeb/wwwroot MessengerWeb/wwwroot

@@ -3,6 +3,7 @@ using Mediator;
 using Messenger.Chats.Application;
 using Messenger.Chats.Domain;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Net.Http.Headers;
 
 namespace MessengerWeb;
 [ApiController]
@@ -146,13 +147,50 @@ public class ChatsController : ControllerBase
         Guid chatId,
         SendMessageRequest request)
     {
+        var voice = request.Voice != null
+            ? new SendMessageVoice(request.Voice.FileId, request.Voice.DurationSeconds)
+            : null;
+
         var result = await _mediator.Send(new SendMessageCommand(
             User.GetAccountId(),
             chatId,
             request.Text,
+            request.FileIds ?? [],
+            voice,
             request.ReplyToSeq));
 
         return Ok(result);
+    }
+
+    // Supports range requests, so audio can be seeked without loading it again.
+    [HttpGet("{chatId:guid}/messages/{seq:long}/attachments/{fileId:guid}")]
+    [ProducesResponseType<FileStreamResult>(StatusCodes.Status200OK, "application/octet-stream")]
+    public async Task<IActionResult> GetAttachment(
+        Guid chatId,
+        long seq,
+        Guid fileId)
+    {
+        var result = await _mediator.Send(
+            new GetAttachmentQuery(
+                User.GetAccountId(),
+                chatId,
+                seq,
+                fileId),
+            HttpContext.RequestAborted);
+
+        var disposition = new ContentDispositionHeaderValue(result.CanBeShownInline ? "inline" : "attachment");
+        disposition.SetHttpFileName(result.FileName);
+
+        Response.Headers.ContentDisposition = disposition.ToString();
+        Response.Headers.XContentTypeOptions = "nosniff";
+
+        // A file id always means the same bytes.
+        Response.Headers.CacheControl = "private, max-age=31536000, immutable";
+
+        return File(
+            result.Content,
+            result.CanBeShownInline ? result.ContentType : "application/octet-stream",
+            enableRangeProcessing: true);
     }
 
     private const int DefaultPageSize = 50;
@@ -188,10 +226,24 @@ public sealed record ChangeChatMemberRoleRequest(
     ChatRole? Role
 );
 
+// Text, files or a voice message: at least one of them.
 public sealed record SendMessageRequest(
-    [Required, MaxLength(MessageText.MaxLength)]
-    string Text,
+    [MaxLength(MessageText.MaxLength)]
+    string? Text,
+
+    [MaxLength(MessageContent.MaxAttachments)]
+    IReadOnlyList<Guid>? FileIds,
+
+    SendVoiceRequest? Voice,
 
     [Range(1, long.MaxValue)]
     long? ReplyToSeq
+);
+
+public sealed record SendVoiceRequest(
+    [Required]
+    Guid FileId,
+
+    [Range(1, Attachment.MaxVoiceDurationSeconds)]
+    int DurationSeconds
 );
