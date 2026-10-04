@@ -19,7 +19,12 @@ public static class MongoModule
         services.Configure<MongoOptions>(
             configuration.GetSection(MongoOptions.SectionName));
 
-        // Driver 3.x refuses to serialize Guid until a representation is chosen.
+        // Driver 2.x because the hosting runs MongoDB 3.6, which 3.x does not support. V3 mode is what
+        // 3.x always does: no global legacy Guid format, Guids are stored as standard UUIDs (subtype 4).
+#pragma warning disable CS0618
+        BsonDefaults.GuidRepresentationMode = GuidRepresentationMode.V3;
+#pragma warning restore CS0618
+
         BsonSerializer.TryRegisterSerializer(
             new GuidSerializer(GuidRepresentation.Standard));
 

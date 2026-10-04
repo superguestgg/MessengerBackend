@@ -12,6 +12,7 @@
 
     <ItemGroup>
       <PackageReference Include="Mediator.Abstractions" Version="3.0.2" />
+      <PackageReference Include="MongoDB.Driver.GridFS" Version="2.30.0" />
     </ItemGroup>
 
     <ItemGroup>
