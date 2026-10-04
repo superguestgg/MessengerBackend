@@ -17,19 +17,31 @@ function ChatListItem({ chat, myId }: { chat: Chat; myId: string }) {
 
   return (
     <NavLink to={`/chats/${chat.chatId}`} className={({ isActive }) => (isActive ? 'chat-item active' : 'chat-item')}>
-      <span className="avatar" aria-hidden="true">
-        {chat.type === 'Group' ? '#' : title.charAt(0).toUpperCase()}
-      </span>
-      <span className="chat-item-body">
-        <span className="chat-item-title">
-          <span className="ellipsis">{title}</span>
-          {isBot && <BotBadge />}
-        </span>
-        <span className="muted small">
-          {chat.type === 'Group' ? `Группа · ${chat.members.length}` : 'Личный чат'}
-        </span>
-      </span>
-      <span className="muted small">{formatShort(time)}</span>
+      {({ isActive }) => (
+        <>
+          <span className="avatar" aria-hidden="true">
+            {chat.type === 'Group' ? '#' : title.charAt(0).toUpperCase()}
+          </span>
+          <span className="chat-item-body">
+            <span className="chat-item-title">
+              <span className="ellipsis">{title}</span>
+              {isBot && <BotBadge />}
+            </span>
+            <span className="muted small">
+              {chat.type === 'Group' ? `Группа · ${chat.members.length}` : 'Личный чат'}
+            </span>
+          </span>
+          <span className="chat-item-side">
+            <span className="muted small">{formatShort(time)}</span>
+            {/* The open chat is being read right now: its counter would only flicker. */}
+            {!isActive && chat.unreadCount > 0 && (
+              <span className="unread" aria-label={`Непрочитанных: ${chat.unreadCount}`}>
+                {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+              </span>
+            )}
+          </span>
+        </>
+      )}
     </NavLink>
   )
 }

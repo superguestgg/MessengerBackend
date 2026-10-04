@@ -20,6 +20,8 @@ public static class ChatsModule
 
         services.AddScoped<IMessageRepository, MessageRepository>();
 
+        services.AddScoped<IReadMarkRepository, ReadMarkRepository>();
+
         services.AddScoped<ParticipantLookup>();
 
         services.AddScoped<ChatResultBuilder>();

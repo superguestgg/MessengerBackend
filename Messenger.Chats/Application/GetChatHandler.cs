@@ -30,7 +30,7 @@ public sealed class GetChatHandler
 
         chat.EnsureMember(request.UserId);
 
-        var results = await _resultBuilder.Build([chat], cancellationToken);
+        var results = await _resultBuilder.Build(request.UserId, [chat], cancellationToken);
 
         return results[0];
     }

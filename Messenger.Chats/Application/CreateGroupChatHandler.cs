@@ -8,13 +8,16 @@ public sealed class CreateGroupChatHandler
 {
     private readonly IChatRepository _chatRepository;
     private readonly ParticipantLookup _participants;
+    private readonly IPublisher _publisher;
 
     public CreateGroupChatHandler(
         IChatRepository chatRepository,
-        ParticipantLookup participants)
+        ParticipantLookup participants,
+        IPublisher publisher)
     {
         _chatRepository = chatRepository;
         _participants = participants;
+        _publisher = publisher;
     }
 
 
@@ -36,6 +39,8 @@ public sealed class CreateGroupChatHandler
 
 
         await _chatRepository.Add(chat, cancellationToken);
+
+        await _publisher.PublishDomainEvents(chat, cancellationToken);
 
 
         return new CreateChatResult(chat.Id);

@@ -32,8 +32,8 @@ public class Chat : AggregateRoot
             UpdatedAt = now
         };
 
-        chat._members.Add(ChatMember.Create(initiator.UserId, ChatRole.Member, now));
-        chat._members.Add(ChatMember.Create(other.UserId, ChatRole.Member, now));
+        chat.Join(ChatMember.Create(initiator.UserId, ChatRole.Member, now));
+        chat.Join(ChatMember.Create(other.UserId, ChatRole.Member, now));
 
         return chat;
     }
@@ -65,11 +65,11 @@ public class Chat : AggregateRoot
             UpdatedAt = now
         };
 
-        chat._members.Add(ChatMember.Create(creator.UserId, ChatRole.Owner, now));
+        chat.Join(ChatMember.Create(creator.UserId, ChatRole.Owner, now));
 
         foreach (var member in members)
             if (!chat.IsMember(member.UserId))
-                chat._members.Add(ChatMember.Create(member.UserId, ChatRole.Member, now));
+                chat.Join(ChatMember.Create(member.UserId, ChatRole.Member, now));
 
         return chat;
     }
@@ -88,7 +88,7 @@ public class Chat : AggregateRoot
         if (IsMember(participant.UserId))
             return;
 
-        _members.Add(ChatMember.Create(participant.UserId, ChatRole.Member, DateTime.UtcNow));
+        Join(ChatMember.Create(participant.UserId, ChatRole.Member, DateTime.UtcNow));
         UpdatedAt = DateTime.UtcNow;
     }
 
@@ -154,6 +154,20 @@ public class Chat : AggregateRoot
         return Message.Create(Id, seq, authorId, content, replyTo?.Seq);
     }
 
+    // The last message number is kept by the repository, outside the chat document.
+    public ReadMark MarkRead(
+        Guid userId,
+        long seq,
+        long lastMessageSeq)
+    {
+        EnsureMember(userId);
+
+        if (seq > lastMessageSeq)
+            throw new DomainException($"Message #{seq} does not exist yet.");
+
+        return new ReadMark(Id, userId, seq);
+    }
+
     public void EnsureMember(Guid userId)
     {
         if (!IsMember(userId))
@@ -168,6 +182,12 @@ public class Chat : AggregateRoot
     internal void IncrementVersion()
     {
         Version++;
+    }
+
+    private void Join(ChatMember member)
+    {
+        _members.Add(member);
+        Raise(new ChatMemberJoined(Id, member.UserId));
     }
 
     private ChatMember GetMember(Guid userId)

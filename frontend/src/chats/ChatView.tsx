@@ -20,12 +20,23 @@ import { MessageAttachments } from './Attachments'
 import { MembersPanel } from './MembersPanel'
 import { chatTitle, otherMember, useChats } from './model'
 import { useChatMessages } from './useChatMessages'
+import { useReadMarker } from './useReadMarker'
 import { useVoiceRecorder, voiceRecordingSupported, type VoiceRecording } from './useVoiceRecorder'
 
 export function ChatView() {
   const { chatId } = useParams()
   if (chatId == null) return null
   return <ChatRoom key={chatId} chatId={chatId} />
+}
+
+// The last message whose top edge is on screen.
+function lastVisibleSeq(list: HTMLElement): number | null {
+  const bottom = list.getBoundingClientRect().bottom
+  const items = list.querySelectorAll<HTMLElement>('li[data-seq]')
+  for (let i = items.length - 1; i >= 0; i--) {
+    if (items[i].getBoundingClientRect().top < bottom) return Number(items[i].dataset.seq)
+  }
+  return null
 }
 
 function excerpt(text: string) {
@@ -60,6 +71,7 @@ function ChatRoom({ chatId }: { chatId: string }) {
   const [highlighted, setHighlighted] = useState<number | null>(null)
   const [pending, setPending] = useState<PendingFile[]>([])
   const recorder = useVoiceRecorder(sendVoice)
+  const markRead = useReadMarker(chatId, refreshChats)
 
   const listRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -95,10 +107,32 @@ function ChatRoom({ chatId }: { chatId: string }) {
     }
   }, [messages])
 
+  // Only what the user can actually see counts as read: not in a background tab or window.
+  const reportRead = useCallback(() => {
+    const list = listRef.current
+    if (list == null || document.visibilityState !== 'visible' || !document.hasFocus()) return
+    const seq = lastVisibleSeq(list)
+    if (seq != null) markRead(seq)
+  }, [markRead])
+
+  useEffect(() => {
+    reportRead()
+  }, [messages, reportRead])
+
+  useEffect(() => {
+    window.addEventListener('focus', reportRead)
+    document.addEventListener('visibilitychange', reportRead)
+    return () => {
+      window.removeEventListener('focus', reportRead)
+      document.removeEventListener('visibilitychange', reportRead)
+    }
+  }, [reportRead])
+
   function onScroll() {
     const list = listRef.current
     if (list == null) return
     atBottom.current = list.scrollHeight - list.scrollTop - list.clientHeight < 40
+    reportRead()
   }
 
   async function showOlder() {

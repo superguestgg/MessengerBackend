@@ -25,7 +25,7 @@ public sealed class GetChatsHandler
         var chats = await _chatRepository
             .GetByMember(request.UserId, cancellationToken);
 
-        var results = await _resultBuilder.Build(chats, cancellationToken);
+        var results = await _resultBuilder.Build(request.UserId, chats, cancellationToken);
 
         // Most recently active first; chats without messages by creation time.
         return results

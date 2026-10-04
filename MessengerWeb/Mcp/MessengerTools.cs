@@ -48,7 +48,10 @@ public sealed class MessengerTools
     }
 
     [McpServerTool(Name = "list_chats", ReadOnly = true, UseStructuredContent = true)]
-    [Description("Lists chats this account is a member of, most recently active first, with members and the number of the last message (lastMessageSeq).")]
+    [Description(
+        "Lists chats this account is a member of, most recently active first, with members, the number of the last message (lastMessageSeq), " +
+        "how far this account has read (lastReadSeq) and how many messages are unread (unreadCount). " +
+        "To read only new messages: read_messages with after = lastReadSeq, then mark_read.")]
     public async Task<ChatListResult> ListChats(
         ClaimsPrincipal user,
         CancellationToken cancellationToken)
@@ -92,6 +95,19 @@ public sealed class MessengerTools
             cancellationToken));
 
         return new MessageListResult(messages);
+    }
+
+    [McpServerTool(Name = "mark_read", Idempotent = true, Destructive = false)]
+    [Description("Marks messages of a chat up to and including 'seq' as read by this account. The mark only moves forward: a smaller seq changes nothing. Your own messages are read already.")]
+    public async Task MarkRead(
+        ClaimsPrincipal user,
+        [Description("Chat id.")] Guid chatId,
+        [Description("Seq of the last message read, usually the last one returned by read_messages.")] long seq,
+        CancellationToken cancellationToken = default)
+    {
+        await Run(() => _mediator.Send(
+            new MarkChatReadCommand(user.GetAccountId(), chatId, seq),
+            cancellationToken));
     }
 
     [McpServerTool(Name = "send_message", Destructive = false, UseStructuredContent = true)]
