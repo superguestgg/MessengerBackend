@@ -1,0 +1,59 @@
+# Builds the frontend into MessengerWeb/wwwroot, publishes the backend as a self-contained
+# linux-x64 app (no .NET needed on the server) and copies it over SSH. See README, "Деплой на сервер".
+name: Deploy
+on:
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend into wwwroot
+        working-directory: frontend
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build:host
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Test
+        run: dotnet test Messenger.sln -c Release
+
+      - name: Publish self-contained linux-x64
+        run: |
+          dotnet publish MessengerWeb/MessengerWeb.csproj -c Release -r linux-x64 --self-contained true -o ./publish
+          test -f ./publish/wwwroot/index.html
+
+      - name: Deploy to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          source: "publish"
+          strip_components: 1
+          target: ${{ secrets.DEPLOY_PATH }}
+
+      - name: Change file rights
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: ${{ secrets.SERVER_SSH_PORT }}
+          script: chmod +x ${{ secrets.DEPLOY_PATH }}/MessengerWeb

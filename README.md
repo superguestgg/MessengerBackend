@@ -102,6 +102,17 @@ docker run -p 8080:8080 \
 - Фронт на том же домене, CORS не нужен. Если фронт всё же на другом домене — `Cors__AllowedOrigins__0=https://…`.
 - Swagger в образе выключен (Production). Для `npm run api:generate` запускайте бэкенд локально.
 
+### Деплой на сервер (GitHub Actions)
+
+Для хостинга без Docker — workflow `.github/workflows/deploy.yml`, запускается вручную (Actions → Deploy → Run workflow). Он собирает фронт в `wwwroot`, прогоняет тесты, публикует бэкенд как self-contained приложение под `linux-x64` (на сервере .NET не нужен) и копирует его по SSH.
+
+Секреты репозитория (Settings → Secrets and variables → Actions):
+
+- `SERVER_HOST`, `SERVER_USER`, `SERVER_SSH_KEY`, `SERVER_SSH_PORT` — доступ по SSH;
+- `DEPLOY_PATH` — папка приложения на сервере, например `~/messenger/app`. Содержимое публикации ложится прямо в неё, исполняемый файл — `DEPLOY_PATH/MessengerWeb`.
+
+Перезапуск приложения — на стороне хостинга. Запускайте `MessengerWeb` из его папки: `wwwroot` и `appsettings.json` ищутся в текущей директории. Переменные окружения — те же, что для Docker (`Mongo__ConnectionString`, `Jwt__SigningKey`, …); порт задаёт `ASPNETCORE_HTTP_PORTS` или `ASPNETCORE_URLS`.
+
 ## Структура решения
 
 ```
