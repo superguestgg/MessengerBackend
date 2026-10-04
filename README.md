@@ -9,7 +9,7 @@
 ## Стек
 
 - **.NET 10**, ASP.NET Core (контроллеры), Swagger
-- **MongoDB** — драйвер 3.x
+- **MongoDB** — драйвер 2.x (2.30): у хостинга MongoDB 3.6, ветка 3.x драйвера её не поддерживает
 - **[Mediator](https://github.com/martinothamar/Mediator)** — CQRS на source generator (не MediatR)
 - `PasswordHasher` из ASP.NET Core Identity для хеширования паролей
 
