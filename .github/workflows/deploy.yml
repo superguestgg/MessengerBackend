@@ -39,6 +39,18 @@ jobs:
           dotnet publish MessengerWeb/MessengerWeb.csproj -c Release -r linux-x64 --self-contained true -o ./publish
           test -f ./publish/wwwroot/index.html
 
+      # The hosting's variables have no JWT key, so it comes from a repository secret into
+      # appsettings.Production.json next to the executable (Production is the default environment).
+      - name: Write JWT signing key
+        env:
+          JWT_SIGNING_KEY: ${{ secrets.JWT_SIGNING_KEY }}
+        run: |
+          if [ ${#JWT_SIGNING_KEY} -lt 32 ]; then
+            echo "::error::Secret JWT_SIGNING_KEY is missing or shorter than 32 characters"
+            exit 1
+          fi
+          jq -n --arg key "$JWT_SIGNING_KEY" '{Jwt: {SigningKey: $key}}' > ./publish/appsettings.Production.json
+
       - name: Deploy to server
         uses: appleboy/scp-action@v0.1.7
         with:

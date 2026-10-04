@@ -10,9 +10,18 @@ using MessengerWeb;
 using MessengerWeb.Mcp;
 using ModelContextProtocol.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.OpenApi;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    // The hosting may start the published app from another directory: appsettings.json and wwwroot
+    // are looked up next to the executable, not in the current directory.
+    ContentRootPath = AppContext.BaseDirectory
+});
+
+builder.ApplyHostingVariables();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -37,6 +46,12 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddProblemDetails();
+
+// Behind a reverse proxy on the same machine the client's IP (for rate limiting) and scheme come in
+// X-Forwarded-* headers. Only loopback proxies are trusted, as by default.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto);
+
 builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 builder.Services.AddMongo(builder.Configuration);
 
@@ -99,6 +114,8 @@ var app = builder.Build();
 await app.Services.InitializeUsers();
 await app.Services.InitializeFiles();
 await app.Services.InitializeChats();
+
+app.UseForwardedHeaders();
 
 app.UseExceptionHandler();
 
