@@ -50,10 +50,9 @@ public sealed class ChatResultBuilder
 
                 var lastSeq = chatActivity?.LastMessageSeq ?? 0;
 
-                // Members who joined before read marks existed have none: their history counts as read.
-                var lastReadSeq = readMarks.TryGetValue(chat.Id, out var mark)
-                    ? Math.Min(mark, lastSeq)
-                    : lastSeq;
+                // No mark means nothing is read: members get one on joining, so only those
+                // from before read marks existed lack it, and they see the history as unread.
+                var lastReadSeq = Math.Min(readMarks.GetValueOrDefault(chat.Id), lastSeq);
 
                 return new ChatResult(
                     chat.Id,
