@@ -11,6 +11,9 @@ export const limits = {
   fileMaxBytes: 1024 * 1024, // StoredFile.MaxSize
   attachmentsMax: 10, // MessageContent.MaxAttachments
   voiceMaxSeconds: 300, // Attachment.MaxVoiceDurationSeconds
+  geoAccuracyMaxMeters: 100_000, // GeoPoint.MaxAccuracyMeters
+  // LiveLocation.MinPeriodSeconds .. LiveLocation.MaxPeriodSeconds
+  livePeriodsSeconds: [15 * 60, 60 * 60, 8 * 60 * 60],
   searchMin: 2, // SearchUsersQuery.MinLength; the max is emailMax
   pageSize: 50,
 }

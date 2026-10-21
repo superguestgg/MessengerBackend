@@ -34,6 +34,8 @@ public sealed class DomainExceptionHandler : IExceptionHandler
             ChatsDomain.AttachmentNotFoundException => (StatusCodes.Status404NotFound, "File not found"),
             ChatsDomain.ChatAccessDeniedException => (StatusCodes.Status403Forbidden, "Access denied"),
             ChatsDomain.ChatConcurrencyException => (StatusCodes.Status409Conflict, "Concurrent change"),
+            ChatsDomain.LiveLocationNotFoundException => (StatusCodes.Status404NotFound, "Live location not found"),
+            ChatsDomain.LiveLocationEndedException => (StatusCodes.Status409Conflict, "Live location ended"),
             ChatsDomain.DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),
             FilesDomain.FileTooLargeException => (StatusCodes.Status413PayloadTooLarge, "File too large"),
             FilesDomain.DomainException => (StatusCodes.Status400BadRequest, "Invalid request"),

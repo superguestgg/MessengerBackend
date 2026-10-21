@@ -54,5 +54,24 @@ public static class ChatsMongoInitializer
         await readMarks.Indexes.CreateOneAsync(
             readMarkIndex,
             cancellationToken: cancellationToken);
+
+
+        var liveLocations = database.GetCollection<LiveLocation>(LiveLocationRepository.CollectionName);
+
+        var liveSeqIndex = new CreateIndexModel<LiveLocation>(
+            Builders<LiveLocation>.IndexKeys
+                .Ascending(x => x.ChatId)
+                .Ascending(x => x.Seq),
+            new CreateIndexOptions { Unique = true, Name = "ux_live_locations_chat_seq" });
+
+        var liveUserIndex = new CreateIndexModel<LiveLocation>(
+            Builders<LiveLocation>.IndexKeys
+                .Ascending(x => x.UserId)
+                .Ascending(x => x.ExpiresAt),
+            new CreateIndexOptions { Name = "ix_live_locations_user_expires" });
+
+        await liveLocations.Indexes.CreateManyAsync(
+            [liveSeqIndex, liveUserIndex],
+            cancellationToken);
     }
 }

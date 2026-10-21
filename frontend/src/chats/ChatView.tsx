@@ -16,6 +16,8 @@ import { BotBadge, ErrorText } from '../components/common'
 import { displayName, formatDateTime, formatDuration, formatSize, formatTime, pluralize } from '../format'
 import { limits } from '../limits'
 import { messagePreview, uploadFile } from './files'
+import { currentPosition, geolocationErrorMessage, geolocationSupported, livePeriods, startBroadcast, toPoint } from './liveLocation'
+import { LocationCard } from './Location'
 import { MessageAttachments } from './Attachments'
 import { MembersPanel } from './MembersPanel'
 import { chatTitle, otherMember, useChats } from './model'
@@ -54,6 +56,8 @@ interface PendingFile {
 
 let nextPendingKey = 1
 
+const liveRefreshMs = 5000
+
 function ChatRoom({ chatId }: { chatId: string }) {
   const me = useMe()
   const { refreshChats } = useChats()
@@ -61,7 +65,7 @@ function ChatRoom({ chatId }: { chatId: string }) {
   const [chatError, setChatError] = useState<string | null>(null)
   const [chatVersion, setChatVersion] = useState(0)
   const [showMembers, setShowMembers] = useState(false)
-  const { messages, loading, error, reconnecting, hasOlder, loadingOlder, loadOlder, addMessage } =
+  const { messages, loading, error, reconnecting, hasOlder, loadingOlder, loadOlder, addMessage, applyLiveLocations } =
     useChatMessages(chatId)
 
   const [text, setText] = useState('')
@@ -70,6 +74,7 @@ function ChatRoom({ chatId }: { chatId: string }) {
   const [sendError, setSendError] = useState<string | null>(null)
   const [highlighted, setHighlighted] = useState<number | null>(null)
   const [pending, setPending] = useState<PendingFile[]>([])
+  const [locationMenu, setLocationMenu] = useState(false)
   const recorder = useVoiceRecorder(sendVoice)
   const markRead = useReadMarker(chatId, refreshChats)
 
@@ -106,6 +111,29 @@ function ChatRoom({ chatId }: { chatId: string }) {
       list.scrollTop = list.scrollHeight
     }
   }, [messages])
+
+  // Messages carry a live point as of when they were read: poll for fresh ones while any is live.
+  const hasLive = messages.some((message) => message.location?.isLive === true)
+  useEffect(() => {
+    if (!hasLive) return
+    const controller = new AbortController()
+    function poll() {
+      if (document.visibilityState !== 'visible') return
+      unwrap(api.GET('/api/chats/{chatId}/live-locations', { params: { path: { chatId } }, signal: controller.signal }))
+        .then(applyLiveLocations)
+        .catch(() => {
+          // The next poll tries again.
+        })
+    }
+    poll()
+    const timer = setInterval(poll, liveRefreshMs)
+    document.addEventListener('visibilitychange', poll)
+    return () => {
+      controller.abort()
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', poll)
+    }
+  }, [chatId, hasLive, applyLiveLocations])
 
   // Only what the user can actually see counts as read: not in a background tab or window.
   const reportRead = useCallback(() => {
@@ -260,6 +288,38 @@ function ChatRoom({ chatId }: { chatId: string }) {
     }
   }
 
+  // Live for livePeriodSeconds, or a single point when it is null.
+  async function sendLocation(livePeriodSeconds: number | null) {
+    setLocationMenu(false)
+    setSending(true)
+    setSendError(null)
+    try {
+      let position: GeolocationPosition
+      try {
+        position = await currentPosition()
+      } catch (err) {
+        setSendError(err instanceof GeolocationPositionError ? geolocationErrorMessage(err) : errorMessage(err))
+        return
+      }
+      const result = await unwrap(
+        api.POST('/api/chats/{chatId}/messages', {
+          params: { path: { chatId } },
+          body: { location: { ...toPoint(position), livePeriodSeconds }, replyToSeq: replyTo?.seq ?? null },
+        }),
+      )
+      if (livePeriodSeconds != null) {
+        const until = new Date(Date.parse(result.createdAt) + livePeriodSeconds * 1000).toISOString()
+        startBroadcast(chatId, result.seq, until, position)
+      }
+      atBottom.current = true
+      setReplyTo(null)
+    } catch (err) {
+      setSendError(errorMessage(err))
+    } finally {
+      setSending(false)
+    }
+  }
+
   function onPaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     const files = [...event.clipboardData.files]
     if (files.length === 0) return
@@ -373,6 +433,9 @@ function ChatRoom({ chatId }: { chatId: string }) {
                     </button>
                   )}
                   <MessageAttachments chatId={chatId} seq={message.seq} attachments={message.attachments} />
+                  {message.location != null && (
+                    <LocationCard chatId={chatId} seq={message.seq} location={message.location} mine={mine} />
+                  )}
                   {message.text != null && <div className="message-text">{message.text}</div>}
                   <div className="message-meta">
                     <time dateTime={message.createdAt} title={formatDateTime(message.createdAt)}>
@@ -423,6 +486,25 @@ function ChatRoom({ chatId }: { chatId: string }) {
           </ul>
         )}
         <ErrorText error={sendError ?? recorder.error} />
+        {locationMenu && (
+          <div className="location-menu" role="group" aria-label="Отправить геопозицию">
+            <button type="button" className="button small secondary" onClick={() => void sendLocation(null)}>
+              Отправить текущую
+            </button>
+            <span className="muted small">Транслировать:</span>
+            {livePeriods.map((period) => (
+              <button
+                key={period.seconds}
+                type="button"
+                className="button small secondary"
+                onClick={() => void sendLocation(period.seconds)}
+              >
+                {period.label}
+              </button>
+            ))}
+            <span className="muted small grow">Пока открыта вкладка</span>
+          </div>
+        )}
         {recorder.recording ? (
           <div className="composer-row">
             <div className="recording grow" role="status">
@@ -458,6 +540,19 @@ function ChatRoom({ chatId }: { chatId: string }) {
             >
               📎
             </button>
+            {geolocationSupported && (
+              <button
+                type="button"
+                className="button secondary icon"
+                aria-label="Геопозиция"
+                aria-expanded={locationMenu}
+                title="Отправить или транслировать геопозицию"
+                disabled={sending || (error != null && messages.length === 0)}
+                onClick={() => setLocationMenu((value) => !value)}
+              >
+                📍
+              </button>
+            )}
             <textarea
               ref={inputRef}
               name="message"

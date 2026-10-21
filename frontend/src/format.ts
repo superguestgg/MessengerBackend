@@ -50,3 +50,25 @@ export function pluralize(count: number, [one, few, many]: [string, string, stri
   const form = plurals.select(count)
   return `${count} ${form === 'one' ? one : form === 'few' ? few : many}`
 }
+
+// How long ago, roughly: "только что", "5 мин назад", "2 ч назад".
+export function formatAgo(iso: string, now: number) {
+  const seconds = Math.max(0, Math.round((now - Date.parse(iso)) / 1000))
+  if (seconds < 30) return 'только что'
+  if (seconds < 60) return `${seconds} с назад`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)} мин назад`
+  return `${Math.floor(seconds / 3600)} ч назад`
+}
+
+// Time left: "40 мин", "1 ч 20 мин".
+export function formatLeft(iso: string, now: number) {
+  const minutes = Math.max(1, Math.ceil((Date.parse(iso) - now) / 60_000))
+  if (minutes < 60) return `${minutes} мин`
+  const hours = Math.floor(minutes / 60)
+  return minutes % 60 === 0 ? `${hours} ч` : `${hours} ч ${minutes % 60} мин`
+}
+
+// formatDistance(12.4) → "12 м", formatDistance(2500) → "2,5 км"
+export function formatDistance(meters: number) {
+  return meters < 1000 ? `${Math.round(meters)} м` : `${decimal.format(meters / 1000)} км`
+}

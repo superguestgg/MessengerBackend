@@ -828,6 +828,55 @@ legend {
   font-size: 0.9rem;
 }
 
+.location {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  margin: 2px 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+.location.live {
+  border-left: 3px solid var(--success);
+}
+
+.location-title {
+  display: flex;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.location .button {
+  margin-top: 4px;
+}
+
+.location-menu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.live-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 16px;
+  background: var(--accent-soft);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.9rem;
+}
+
+.live-banner-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .pending-files {
   list-style: none;
   margin: 0;

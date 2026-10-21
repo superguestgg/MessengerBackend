@@ -224,7 +224,7 @@ graph TD
 
 ### Модуль Chats
 
-Два агрегата одного модуля: `Chat` и `Message`. Коллекции `chats`, `messages`, `chat_message_counters`, `chat_read_marks`.
+Агрегаты `Chat`, `Message` и `LiveLocation`. Коллекции `chats`, `messages`, `chat_message_counters`, `chat_read_marks`, `chat_live_locations`.
 
 - **Чат** — `Direct` (ровно двое) или `Group` (название, роли `Owner` / `Admin` / `Member`). Участник — `ChatMember { UserId, Role, JoinedAt }`; пользователь для Chats — только `UserId`, а `ChatParticipant { UserId, IsBot, OwnerId }` собирается из `IUsersApi` на время проверки правил.
 - **Личный чат на пару один**: `DirectKey` (два id по порядку) с частичным уникальным индексом. `POST /api/chats/direct` идемпотентен — для существующей пары вернёт тот же чат, в том числе при одновременных запросах.
@@ -235,6 +235,10 @@ graph TD
 - **Сообщение хранит только `AuthorId`**; имя автора и признак бота подставляются при чтении одним пакетным запросом в `IUsersApi`. Ответ на сообщение — `ReplyToSeq`.
 - **Вложения** — `Message.Attachments`: `{ FileId, Kind: File | Image | Voice, FileName, ContentType, Size, DurationSeconds?, Transcript? }`. Сам файл живёт в модуле Files, его метаданные копируются в сообщение: файл после загрузки не меняется. Правила — в `MessageContent`: есть текст или вложения, вложений до 10 и без повторов, голосовое — одно, без подписи и других файлов. `Image` — только `png`, `jpeg`, `gif`, `webp` (SVG может содержать скрипты); прикрепить можно только свой файл. `MessageContent` собирается до выдачи номера, поэтому отклонённое сообщение не оставляет дыры в нумерации.
 - **Голосовое** — вложение `Voice` с длительностью от клиента (до 5 минут) и `Transcript { Status, Text? }`. Распознавания речи пока нет, статус всегда `None`; поле заложено, чтобы расшифровка включилась без изменения API (план — [docs/FILES.md](docs/FILES.md)).
+- **Геопозиция** — сообщение с `Location { Latitude, Longitude, AccuracyMeters? }` и без текста и вложений (`GeoPoint`: широта ±90, долгота ±180, точность до 100 км). Ссылка на карту строится на фронте (openstreetmap.org), картографической библиотеки нет.
+- **Трансляция геопозиции** — то же сообщение с `LiveUntil` (от 1 минуты до 8 часов). Сообщение не меняется: последняя точка живёт в агрегате `LiveLocation { ChatId, Seq, UserId, Point, UpdatedAt, ExpiresAt, StoppedAt? }` в `chat_live_locations` (`_id` — id сообщения). Хранится только последняя точка, истории перемещений нет. Обновлять и останавливать может только автор; точки чаще раза в 2 с отбрасываются; после `ExpiresAt` или остановки новые точки получают 409 — по нему устройство и узнаёт, что трансляцию остановили с другого. Запись точки идёт с условием `StoppedAt = null`, поэтому опоздавшая точка не отменит остановку. Остановить можно и после выхода из чата; чат такую трансляцию больше не показывает.
+- **Доставка точек** — опросом: `MessageResult.location` содержит точку на момент чтения, фронт, пока в чате есть активная трансляция, раз в 5 с спрашивает `GET …/live-locations`. Long polling для этого не используется и не занимает `WaitSlots`; заменится на real-time вместе с `/api/updates`.
+- **Трансляция во фронте** идёт, пока открыта вкладка: браузер не отдаёт геопозицию в фоне. После перезагрузки вкладка сама продолжает то, что транслировала (`sessionStorage`); новая вкладка или другое устройство показывают плашку «Вы транслируете…» с кнопками «Продолжить» и «Остановить» (`GET /api/live-locations/mine`). Выход из аккаунта прекращает отправку с устройства, но не саму трансляцию. Неподвижному человеку точка переотправляется раз в минуту, чтобы было видно, что трансляция жива.
 - **Скачивание вложения** проверяет доступ через сообщение: участник чата получает файл, только если он прикреплён к этому сообщению. Картинки и голосовые отдаются `inline`, остальное — `attachment` и `application/octet-stream`: фронт может раздаваться с того же домена, и загруженный HTML не должен открываться как страница. Всегда `X-Content-Type-Options: nosniff`, поддерживаются Range-запросы.
 
 ### Модуль Files
@@ -270,7 +274,7 @@ graph TD
 | `send_message` | отправить текст, вернёт `seq` — по нему потом ждать ответ |
 | `wait_for_reply` | ожидание с фильтрами `fromUserId` и `replyToSeq`; `{ messages, nextAfterSeq, timedOut }` |
 
-Сообщения в `read_messages` и `wait_for_reply` приходят с вложениями: у голосового `text` пустой, а текст будет в `attachments[].transcript` (пока распознавание выключено — статус `None`). Сам файл агент скачивает по REST тем же токеном: `GET /api/chats/{chatId}/messages/{seq}/attachments/{fileId}`. Отправлять файлы через MCP пока нельзя.
+Сообщения в `read_messages` и `wait_for_reply` приходят с геопозицией (`location`; у трансляции — последняя точка и `isLive`) и вложениями: у голосового `text` пустой, а текст будет в `attachments[].transcript` (пока распознавание выключено — статус `None`). Сам файл агент скачивает по REST тем же токеном: `GET /api/chats/{chatId}/messages/{seq}/attachments/{fileId}`. Отправлять файлы через MCP пока нельзя.
 
 Инструменты — тонкие обёртки над теми же handler-ами Mediator, что и контроллеры (`MessengerWeb/Mcp/MessengerTools.cs`). Ошибки домена приходят агенту как ошибка инструмента с текстом причины (SDK при этом пишет их в лог уровнем error); остальные исключения — без подробностей. Результаты — структурированные (`outputSchema`); `null`-поля не выбрасываются, иначе строгие клиенты отвергают ответ.
 
@@ -312,10 +316,11 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 | `InvalidCredentialsException` | 401 |
 | `AccessDeniedException` | 403 |
 | `EmailAlreadyTakenException` | 409 |
-| `AccountNotFoundException`, `AccessTokenNotFoundException`, `ChatNotFoundException`, `ParticipantNotFoundException`, `AttachmentNotFoundException` | 404 |
+| `AccountNotFoundException`, `AccessTokenNotFoundException`, `ChatNotFoundException`, `ParticipantNotFoundException`, `AttachmentNotFoundException`, `LiveLocationNotFoundException` | 404 |
 | `FileTooLargeException` | 413 |
 | `ChatAccessDeniedException` | 403 |
 | `ChatConcurrencyException` | 409 — повторить запрос |
+| `LiveLocationEndedException` | 409 — трансляция закончилась, перестать слать точки |
 | `TooManyWaitsException` | 429 |
 | любое другое `DomainException` (Users, Chats и Files) | 400 |
 | всё остальное | 500 (без стектрейса) |
@@ -349,7 +354,7 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 
 ### Данные
 
-- **Value objects хранятся плоскими строками**, не вложенными документами.
+- **Value objects хранятся плоскими строками**, не вложенными документами. Исключение — составные, из нескольких чисел (`GeoPoint`): вложенный документ через `BsonClassMap` с `MapCreator`, чтобы не разбирать строку при каждом чтении.
 - **Коллекции, поля и индексы не переименовываются без миграции данных.** Поэтому коллекция аккаунтов до сих пор называется `users`.
 
 ## API
@@ -382,7 +387,11 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 | `DELETE` | `/api/chats/{chatId}/members/{userId}` | удалить из группы; свой id — выйти | 204, 400, 403, 404, 409 |
 | `PUT` | `/api/chats/{chatId}/members/{userId}/role` | `{ role: "Admin" \| "Member" }` | 204, 400, 403, 404, 409 |
 | `GET` | `/api/chats/{chatId}/messages` | `?after=N` — новее N, `?before=N` — старше N, без них — последние; `limit` 1–100, по умолчанию 50; по возрастанию `seq` | 200, 400, 404 |
-| `POST` | `/api/chats/{chatId}/messages` | `{ text?, fileIds?, voice?: { fileId, durationSeconds }, replyToSeq? }` → `{ messageId, chatId, seq, createdAt }`; текст, файлы или голосовое | 200, 400, 404 |
+| `POST` | `/api/chats/{chatId}/messages` | `{ text?, fileIds?, voice?: { fileId, durationSeconds }, location?: { latitude, longitude, accuracyMeters?, livePeriodSeconds? }, replyToSeq? }` → `{ messageId, chatId, seq, createdAt }`; текст, файлы, голосовое или геопозиция (с `livePeriodSeconds` 60–28800 — трансляция) | 200, 400, 404 |
+| `GET` | `/api/chats/{chatId}/live-locations` | активные трансляции в чате: `[{ chatId, seq, userId, location }]` | 200, 404 |
+| `PUT` | `/api/chats/{chatId}/messages/{seq}/location` | `{ latitude, longitude, accuracyMeters? }` — новая точка трансляции; только автор | 204, 400, 403, 404, 409 — трансляция закончилась |
+| `POST` | `/api/chats/{chatId}/messages/{seq}/location/stop` | остановить трансляцию; только автор, повторная остановка — не ошибка | 204, 403, 404 |
+| `GET` | `/api/live-locations/mine` | мои активные трансляции во всех чатах | 200 |
 | `GET` | `/api/chats/{chatId}/messages/{seq}/attachments/{fileId}` | содержимое вложения; Range-запросы | 200, 206, 404 |
 | `POST` | `/api/files` | multipart, поле `file` → `{ fileId, fileName, contentType, size }`; дальше `fileId` идёт в сообщение | 200, 400, 413 |
 | `GET` | `/api/chats/{chatId}/messages/wait` | long polling: `?after=N` (обязательно), `from?`, `replyTo?`, `timeout` 0–50 с (по умолчанию 30) → `{ messages, nextAfterSeq }` | 200, 400, 404, 429 |
@@ -405,6 +414,7 @@ claude mcp add --transport http messenger https://<хост>/mcp --header "Autho
 - У `AccountRegistered` пока нет подписчиков, отсюда предупреждение `MSG0005` при сборке.
 - Тесты — только unit-тесты домена; интеграционных тестов против Mongo пока нет.
 - Поиск по имени сканирует профили без индекса и ищет только по началу слова.
+- Трансляция геопозиции в вебе идёт только при открытой вкладке; точки доходят до собеседника опросом раз в 5 с, а не через real-time.
 - Нет редактирования и удаления сообщений, отметок «прочитано собеседником» и real-time для фронта; новые сообщения — через `?after=N` или ожидание в конкретном чате.
 - Голосовые не расшифровываются: `Transcript.Status` всегда `None`. План — в [docs/FILES.md](docs/FILES.md). Файлы через MCP не отправляются, превью картинок нет, длительность голосового сервер берёт у клиента.
 - Нет общего потока событий по всем чатам (`/api/updates`) — отложен до real-time.

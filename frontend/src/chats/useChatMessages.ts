@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, ApiError, errorMessage, isAbort, unwrap, type Message } from '../api/client'
+import { api, ApiError, errorMessage, isAbort, unwrap, type LiveLocation, type Message } from '../api/client'
 import { limits } from '../limits'
 import { mergeMessages, resumeAfter } from './model'
 
@@ -105,10 +105,32 @@ export function useChatMessages(chatId: string) {
     }
   }, [chatId, firstSeq])
 
+  // Fresh points of live locations; a live one missing from the list has ended.
+  const applyLiveLocations = useCallback((live: LiveLocation[]) => {
+    const bySeq = new Map(live.map((item) => [item.seq, item.location]))
+    setMessages((current) => {
+      let changed = false
+      const next = current.map((message) => {
+        const location = message.location
+        if (location?.liveUntil == null) return message
+        const fresh = bySeq.get(message.seq)
+        if (fresh != null) {
+          if (fresh.updatedAt === location.updatedAt && fresh.isLive === location.isLive) return message
+          changed = true
+          return { ...message, location: fresh }
+        }
+        if (!location.isLive) return message
+        changed = true
+        return { ...message, location: { ...location, isLive: false } }
+      })
+      return changed ? next : current
+    })
+  }, [])
+
   // The sender sees the message at once; the copy from long polling replaces it by seq.
   const addMessage = useCallback((message: Message) => {
     setMessages((current) => mergeMessages(current, [message]))
   }, [])
 
-  return { messages, loading, error, reconnecting, hasOlder, loadingOlder, loadOlder, addMessage }
+  return { messages, loading, error, reconnecting, hasOlder, loadingOlder, loadOlder, addMessage, applyLiveLocations }
 }
