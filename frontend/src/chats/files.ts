@@ -68,6 +68,7 @@ export async function saveAttachment(chatId: string, seq: number, fileId: string
 // One line for quotes and the reply bar.
 export function messagePreview(message: Message) {
   if (message.text != null) return message.text
+  if (message.location != null) return message.location.liveUntil != null ? 'Геопозиция в реальном времени' : 'Геопозиция'
   const attachments = message.attachments
   if (attachments.some((attachment) => attachment.kind === 'Voice')) return 'Голосовое сообщение'
   if (attachments.length > 0 && attachments.every((attachment) => attachment.kind === 'Image')) {

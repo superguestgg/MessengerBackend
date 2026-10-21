@@ -22,7 +22,8 @@ public sealed class MessengerTools
     private const string AttachmentsNote =
         "A message may have no text and carry attachments instead: files, images or a voice message (kind 'Voice'), " +
         "whose transcript is text from a person too; status 'None' means speech recognition is off. " +
-        "Download an attachment over HTTP with the same bearer token: GET /api/chats/{chatId}/messages/{seq}/attachments/{fileId}.";
+        "Download an attachment over HTTP with the same bearer token: GET /api/chats/{chatId}/messages/{seq}/attachments/{fileId}. " +
+        "A message may instead carry a location; for a live location (liveUntil set) the point is the latest one and isLive tells whether it is still being updated.";
 
     // The MCP defaults drop null properties, yet the generated output schema lists them as
     // required, so strict clients reject the result. Keep nulls; enums as strings like the REST API.
@@ -120,7 +121,7 @@ public sealed class MessengerTools
         CancellationToken cancellationToken = default)
     {
         return Run(() => _mediator.Send(
-            new SendMessageCommand(user.GetAccountId(), chatId, text, [], null, replyToSeq),
+            new SendMessageCommand(user.GetAccountId(), chatId, text, [], null, null, replyToSeq),
             cancellationToken));
     }
 

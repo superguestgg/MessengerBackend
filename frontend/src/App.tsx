@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, NavLink, Outlet, Route, Routes } from 'react-r
 import { useAuth, useMe } from './auth/context'
 import { ChatsLayout, NoChatSelected } from './chats/ChatsLayout'
 import { ChatView } from './chats/ChatView'
+import { LiveLocationBanner } from './chats/Location'
 import { AuthPage } from './pages/AuthPage'
 import { BotsPage } from './pages/BotsPage'
 import { ProfilePage, WelcomePage } from './pages/ProfilePage'
@@ -39,6 +40,7 @@ function AppLayout() {
           Выйти
         </button>
       </header>
+      <LiveLocationBanner />
       <main className="app-main">
         <Outlet />
       </main>

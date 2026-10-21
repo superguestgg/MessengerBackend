@@ -11,6 +11,7 @@ public sealed record MessageResult(
     bool AuthorIsBot,
     string? Text,
     IReadOnlyList<AttachmentResult> Attachments,
+    LocationResult? Location,
     long? ReplyToSeq,
     DateTime CreatedAt
 );

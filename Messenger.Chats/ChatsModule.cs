@@ -22,6 +22,8 @@ public static class ChatsModule
 
         services.AddScoped<IReadMarkRepository, ReadMarkRepository>();
 
+        services.AddScoped<ILiveLocationRepository, LiveLocationRepository>();
+
         services.AddScoped<ParticipantLookup>();
 
         services.AddScoped<ChatResultBuilder>();

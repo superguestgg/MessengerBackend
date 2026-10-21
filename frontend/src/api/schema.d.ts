@@ -705,6 +705,123 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/chats/{chatId}/live-locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chatId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["LiveLocationResult"][];
+                        "application/json": components["schemas"]["LiveLocationResult"][];
+                        "text/json": components["schemas"]["LiveLocationResult"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chats/{chatId}/messages/{seq}/location": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chatId: string;
+                    seq: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: {
+                content: {
+                    "application/json": components["schemas"]["UpdateLiveLocationRequest"];
+                    "text/json": components["schemas"]["UpdateLiveLocationRequest"];
+                    "application/*+json": components["schemas"]["UpdateLiveLocationRequest"];
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chats/{chatId}/messages/{seq}/location/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chatId: string;
+                    seq: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/chats/{chatId}/messages/{seq}/attachments/{fileId}": {
         parameters: {
             query?: never;
@@ -782,6 +899,43 @@ export interface paths {
                 };
             };
         };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/live-locations/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "text/plain": components["schemas"]["LiveLocationResult"][];
+                        "application/json": components["schemas"]["LiveLocationResult"][];
+                        "text/json": components["schemas"]["LiveLocationResult"][];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1139,6 +1293,28 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
         };
+        LiveLocationResult: {
+            /** Format: uuid */
+            chatId: string;
+            /** Format: int64 */
+            seq: number;
+            /** Format: uuid */
+            userId: string;
+            location: components["schemas"]["LocationResult"];
+        };
+        LocationResult: {
+            /** Format: double */
+            latitude: number;
+            /** Format: double */
+            longitude: number;
+            /** Format: double */
+            accuracyMeters?: number | null;
+            /** Format: date-time */
+            updatedAt: string;
+            /** Format: date-time */
+            liveUntil?: string | null;
+            isLive: boolean;
+        };
         LoginCommand: {
             email: string;
             password: string;
@@ -1177,6 +1353,7 @@ export interface components {
             authorIsBot: boolean;
             text?: string | null;
             attachments: components["schemas"]["AttachmentResult"][];
+            location?: components["schemas"]["LocationResult"] | null;
             /** Format: int64 */
             replyToSeq?: number | null;
             /** Format: date-time */
@@ -1200,10 +1377,21 @@ export interface components {
             /** Format: uuid */
             accountId: string;
         };
+        SendLocationRequest: {
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            /** Format: double */
+            accuracyMeters?: number | null;
+            /** Format: int32 */
+            livePeriodSeconds?: number | null;
+        };
         SendMessageRequest: {
             text?: string | null;
             fileIds?: string[] | null;
             voice?: components["schemas"]["SendVoiceRequest"] | null;
+            location?: components["schemas"]["SendLocationRequest"] | null;
             /** Format: int64 */
             replyToSeq?: number | null;
         };
@@ -1229,6 +1417,14 @@ export interface components {
         };
         /** @enum {string} */
         TranscriptStatus: "None" | "Pending" | "Done" | "Failed";
+        UpdateLiveLocationRequest: {
+            /** Format: double */
+            latitude?: number | null;
+            /** Format: double */
+            longitude?: number | null;
+            /** Format: double */
+            accuracyMeters?: number | null;
+        };
         UpdateProfileRequest: {
             displayName: string;
             bio?: string | null;

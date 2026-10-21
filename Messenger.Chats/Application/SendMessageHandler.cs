@@ -9,17 +9,20 @@ public sealed class SendMessageHandler
 {
     private readonly IChatRepository _chatRepository;
     private readonly IMessageRepository _messageRepository;
+    private readonly ILiveLocationRepository _liveLocationRepository;
     private readonly IFilesApi _filesApi;
     private readonly IPublisher _publisher;
 
     public SendMessageHandler(
         IChatRepository chatRepository,
         IMessageRepository messageRepository,
+        ILiveLocationRepository liveLocationRepository,
         IFilesApi filesApi,
         IPublisher publisher)
     {
         _chatRepository = chatRepository;
         _messageRepository = messageRepository;
+        _liveLocationRepository = liveLocationRepository;
         _filesApi = filesApi;
         _publisher = publisher;
     }
@@ -38,13 +41,7 @@ public sealed class SendMessageHandler
         // Checked before a number is reserved, so outsiders cannot burn sequence numbers.
         chat.EnsureMember(request.AuthorId);
 
-        var text = request.Text != null
-            ? new MessageText(request.Text)
-            : null;
-
-        var content = new MessageContent(
-            text,
-            await LoadAttachments(request, cancellationToken));
+        var content = await BuildContent(request, cancellationToken);
 
         Message? replyTo = null;
 
@@ -66,6 +63,9 @@ public sealed class SendMessageHandler
 
         await _messageRepository.Add(message, cancellationToken);
 
+        if (message.LiveUntil != null)
+            await _liveLocationRepository.Add(LiveLocation.Start(message), cancellationToken);
+
         await _publisher.PublishDomainEvents(message, cancellationToken);
 
 
@@ -74,6 +74,29 @@ public sealed class SendMessageHandler
             message.ChatId,
             message.Seq,
             message.CreatedAt);
+    }
+
+    private async Task<MessageContent> BuildContent(
+        SendMessageCommand request,
+        CancellationToken cancellationToken)
+    {
+        var text = request.Text != null
+            ? new MessageText(request.Text)
+            : null;
+
+        var location = request.Location != null
+            ? new GeoPoint(request.Location.Latitude, request.Location.Longitude, request.Location.AccuracyMeters)
+            : null;
+
+        var livePeriod = request.Location?.LivePeriodSeconds != null
+            ? TimeSpan.FromSeconds(request.Location.LivePeriodSeconds.Value)
+            : (TimeSpan?)null;
+
+        return new MessageContent(
+            text,
+            await LoadAttachments(request, cancellationToken),
+            location,
+            livePeriod);
     }
 
     // Only the author's own uploads can be attached.
