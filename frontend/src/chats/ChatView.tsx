@@ -15,6 +15,7 @@ import { useMe } from '../auth/context'
 import { BotBadge, ErrorText } from '../components/common'
 import { displayName, formatDateTime, formatDuration, formatSize, formatTime, pluralize } from '../format'
 import { limits } from '../limits'
+import { compressImage, isCompressibleImage } from './compressImage'
 import { messagePreview, uploadFile } from './files'
 import { MessageAttachments } from './Attachments'
 import { MembersPanel } from './MembersPanel'
@@ -48,6 +49,7 @@ interface PendingFile {
   key: number
   name: string
   size: number
+  compressing: boolean
   uploaded: UploadedFile | null
   error: string | null
 }
@@ -171,19 +173,31 @@ function ChatRoom({ chatId }: { chatId: string }) {
     }
     for (const file of files) {
       const key = nextPendingKey++
-      const tooLarge = file.size > limits.fileMaxBytes
+      const compress = file.size > limits.fileMaxBytes && isCompressibleImage(file)
+      const maxBytes = compress ? limits.imageMaxBytes : limits.fileMaxBytes
+      const tooLarge = file.size > maxBytes
       setPending((current) => [
         ...current,
         {
           key,
           name: file.name,
           size: file.size,
+          compressing: compress && !tooLarge,
           uploaded: null,
-          error: tooLarge ? `больше ${formatSize(limits.fileMaxBytes)}` : null,
+          error: tooLarge ? `больше ${formatSize(maxBytes)}` : null,
         },
       ])
       if (tooLarge) continue
-      uploadFile(file, file.name)
+      const ready = compress ? compressImage(file, limits.fileMaxBytes) : Promise.resolve(file)
+      ready
+        .then((upload) => {
+          setPending((current) =>
+            current.map((p) =>
+              p.key === key ? { ...p, name: upload.name, size: upload.size, compressing: false } : p,
+            ),
+          )
+          return uploadFile(upload, upload.name)
+        })
         .then((result) => setPending((current) => current.map((p) => (p.key === key ? { ...p, uploaded: result } : p))))
         .catch((err: unknown) =>
           setPending((current) => current.map((p) => (p.key === key ? { ...p, error: errorMessage(err) } : p))),
@@ -409,7 +423,10 @@ function ChatRoom({ chatId }: { chatId: string }) {
             {pending.map((file) => (
               <li key={file.key} className={file.error != null ? 'pending-file failed' : 'pending-file'}>
                 <span className="ellipsis">{file.name}</span>
-                <span className="small">{file.error ?? (file.uploaded == null ? 'загрузка…' : formatSize(file.size))}</span>
+                <span className="small">
+                  {file.error ??
+                    (file.compressing ? 'сжатие…' : file.uploaded == null ? 'загрузка…' : formatSize(file.size))}
+                </span>
                 <button
                   type="button"
                   className="button small ghost"
@@ -452,7 +469,7 @@ function ChatRoom({ chatId }: { chatId: string }) {
               type="button"
               className="button secondary icon"
               aria-label="Прикрепить файл"
-              title={`Прикрепить файл (до ${formatSize(limits.fileMaxBytes)})`}
+              title={`Прикрепить файл (до ${formatSize(limits.fileMaxBytes)}, фото до ${formatSize(limits.imageMaxBytes)} сожмётся)`}
               disabled={error != null && messages.length === 0}
               onClick={() => fileInputRef.current?.click()}
             >
