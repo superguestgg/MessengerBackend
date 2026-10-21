@@ -9,6 +9,7 @@ export const limits = {
   chatTitleMax: 128, // ChatTitle.MaxLength
   messageMax: 4096, // MessageText.MaxLength
   fileMaxBytes: 1024 * 1024, // StoredFile.MaxSize
+  imageMaxBytes: 10 * 1024 * 1024, // Client only: a larger photo is compressed to fileMaxBytes before upload
   attachmentsMax: 10, // MessageContent.MaxAttachments
   voiceMaxSeconds: 300, // Attachment.MaxVoiceDurationSeconds
   searchMin: 2, // SearchUsersQuery.MinLength; the max is emailMax
