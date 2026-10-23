@@ -7,10 +7,14 @@ public sealed class RemoveChatMemberHandler
     : IRequestHandler<RemoveChatMemberCommand>
 {
     private readonly IChatRepository _chatRepository;
+    private readonly IPublisher _publisher;
 
-    public RemoveChatMemberHandler(IChatRepository chatRepository)
+    public RemoveChatMemberHandler(
+        IChatRepository chatRepository,
+        IPublisher publisher)
     {
         _chatRepository = chatRepository;
+        _publisher = publisher;
     }
 
 
@@ -29,6 +33,8 @@ public sealed class RemoveChatMemberHandler
 
 
         await _chatRepository.Update(chat, cancellationToken);
+
+        await _publisher.PublishDomainEvents(chat, cancellationToken);
 
 
         return Unit.Value;

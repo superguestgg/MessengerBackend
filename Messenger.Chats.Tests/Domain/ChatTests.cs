@@ -141,6 +141,23 @@ public class ChatTests
     }
 
     [Fact]
+    public void Leaving_and_removal_are_reported_as_left()
+    {
+        var owner = User();
+        var member = User();
+        var other = User();
+        var chat = Group(owner, member, other);
+        chat.ClearDomainEvents();
+
+        chat.RemoveMember(member.UserId, member.UserId);
+        chat.RemoveMember(owner.UserId, other.UserId);
+
+        Assert.Equal(
+            [new ChatMemberLeft(chat.Id, member.UserId), new ChatMemberLeft(chat.Id, other.UserId)],
+            chat.DomainEvents);
+    }
+
+    [Fact]
     public void Removing_non_member_is_reported()
     {
         var owner = User();

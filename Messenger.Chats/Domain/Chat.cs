@@ -112,6 +112,8 @@ public class Chat : AggregateRoot
 
         _members.Remove(target);
         UpdatedAt = DateTime.UtcNow;
+
+        Raise(new ChatMemberLeft(Id, userId));
     }
 
     public void ChangeRole(

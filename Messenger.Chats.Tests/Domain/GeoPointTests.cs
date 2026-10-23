@@ -7,7 +7,7 @@ public class GeoPointTests
     [Theory]
     [InlineData(55.7558, 37.6173, 12.5)]
     [InlineData(-90, -180, null)]
-    [InlineData(90, 180, 0)]
+    [InlineData(90, 180, 0.0)]
     public void Point_inside_the_ranges_is_kept_as_is(double latitude, double longitude, double? accuracy)
     {
         var point = new GeoPoint(latitude, longitude, accuracy);
