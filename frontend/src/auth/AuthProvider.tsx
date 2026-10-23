@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, ApiError, isAbort, setAccessToken, setUnauthorizedHandler, unwrap, type Me } from '../api/client'
+import { stopAllLocal } from '../chats/liveLocation'
 import { AuthContext, type AuthValue } from './context'
 import { clearSession, loadSession, saveSession, sessionKey, type Session } from './session'
 
@@ -21,6 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<string | null>(null)
 
   const signOut = useCallback((reason: string | null) => {
+    // This device stops sharing its location; the broadcast itself can still be stopped elsewhere.
+    stopAllLocal()
     clearSession()
     setAccessToken(null)
     setSession(null)
@@ -48,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     function onStorage(event: StorageEvent) {
       if (event.key !== sessionKey) return
       const next = restoreSession()
+      if (next == null) stopAllLocal()
       setSession(next)
       setMe(null)
       setMeFailed(false)

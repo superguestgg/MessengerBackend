@@ -39,6 +39,8 @@ internal static class ChatsBsonMappings
                 map.AutoMap();
                 map.GetMemberMap(x => x.ReplyToSeq).SetIgnoreIfNull(true);
                 map.GetMemberMap(x => x.Text).SetIgnoreIfNull(true);
+                map.GetMemberMap(x => x.Location).SetIgnoreIfNull(true);
+                map.GetMemberMap(x => x.LiveUntil).SetIgnoreIfNull(true);
 
                 // Attachments is a read-only view; the list behind it is what gets stored.
                 // Plain text messages keep their old shape: no empty array.
@@ -53,6 +55,24 @@ internal static class ChatsBsonMappings
                 map.AutoMap();
                 map.GetMemberMap(x => x.DurationSeconds).SetIgnoreIfNull(true);
                 map.GetMemberMap(x => x.Transcript).SetIgnoreIfNull(true);
+            });
+
+        // A nested document: the record has no setters, so it is built through its constructor.
+        if (!BsonClassMap.IsClassMapRegistered(typeof(GeoPoint)))
+            BsonClassMap.RegisterClassMap<GeoPoint>(map =>
+            {
+                map.MapProperty(x => x.Latitude);
+                map.MapProperty(x => x.Longitude);
+                // The default lets the creator run when accuracy was not stored.
+                map.MapProperty(x => x.AccuracyMeters).SetIgnoreIfNull(true).SetDefaultValue((double?)null);
+                map.MapCreator(x => new GeoPoint(x.Latitude, x.Longitude, x.AccuracyMeters));
+            });
+
+        if (!BsonClassMap.IsClassMapRegistered(typeof(LiveLocation)))
+            BsonClassMap.RegisterClassMap<LiveLocation>(map =>
+            {
+                map.AutoMap();
+                map.GetMemberMap(x => x.StoppedAt).SetIgnoreIfNull(true);
             });
 
         if (!BsonClassMap.IsClassMapRegistered(typeof(Transcript)))

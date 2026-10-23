@@ -166,15 +166,68 @@ public class ChatsController : ControllerBase
             ? new SendMessageVoice(request.Voice.FileId, request.Voice.DurationSeconds)
             : null;
 
+        var location = request.Location != null
+            ? new SendMessageLocation(
+                request.Location.Latitude!.Value,
+                request.Location.Longitude!.Value,
+                request.Location.AccuracyMeters,
+                request.Location.LivePeriodSeconds)
+            : null;
+
         var result = await _mediator.Send(new SendMessageCommand(
             User.GetAccountId(),
             chatId,
             request.Text,
             request.FileIds ?? [],
             voice,
+            location,
             request.ReplyToSeq));
 
         return Ok(result);
+    }
+
+    // Live locations still being broadcast in the chat. Poll it while a live location is shown:
+    // messages carry the point as of when they were read.
+    [HttpGet("{chatId:guid}/live-locations")]
+    public async Task<ActionResult<IReadOnlyList<LiveLocationResult>>> GetLiveLocations(Guid chatId)
+    {
+        var result = await _mediator.Send(new GetChatLiveLocationsQuery(
+            User.GetAccountId(),
+            chatId));
+
+        return Ok(result);
+    }
+
+    // The author sends the next point. 409 means the broadcast has ended: stop sending.
+    [HttpPut("{chatId:guid}/messages/{seq:long}/location")]
+    public async Task<IActionResult> UpdateLiveLocation(
+        Guid chatId,
+        long seq,
+        UpdateLiveLocationRequest request)
+    {
+        await _mediator.Send(new UpdateLiveLocationCommand(
+            User.GetAccountId(),
+            chatId,
+            seq,
+            request.Latitude!.Value,
+            request.Longitude!.Value,
+            request.AccuracyMeters));
+
+        return NoContent();
+    }
+
+    // Stopping an ended broadcast is not an error.
+    [HttpPost("{chatId:guid}/messages/{seq:long}/location/stop")]
+    public async Task<IActionResult> StopLiveLocation(
+        Guid chatId,
+        long seq)
+    {
+        await _mediator.Send(new StopLiveLocationCommand(
+            User.GetAccountId(),
+            chatId,
+            seq));
+
+        return NoContent();
     }
 
     // Supports range requests, so audio can be seeked without loading it again.
@@ -246,7 +299,7 @@ public sealed record MarkChatReadRequest(
     long? Seq
 );
 
-// Text, files or a voice message: at least one of them.
+// Text, files, a voice message or a location. A location goes alone.
 public sealed record SendMessageRequest(
     [MaxLength(MessageText.MaxLength)]
     string? Text,
@@ -255,6 +308,8 @@ public sealed record SendMessageRequest(
     IReadOnlyList<Guid>? FileIds,
 
     SendVoiceRequest? Voice,
+
+    SendLocationRequest? Location,
 
     [Range(1, long.MaxValue)]
     long? ReplyToSeq
@@ -266,4 +321,30 @@ public sealed record SendVoiceRequest(
 
     [Range(1, Attachment.MaxVoiceDurationSeconds)]
     int DurationSeconds
+);
+
+// Live when LivePeriodSeconds is set: then send new points to …/messages/{seq}/location.
+public sealed record SendLocationRequest(
+    [Required, Range(-GeoPoint.MaxLatitude, GeoPoint.MaxLatitude)]
+    double? Latitude,
+
+    [Required, Range(-GeoPoint.MaxLongitude, GeoPoint.MaxLongitude)]
+    double? Longitude,
+
+    [Range(0, GeoPoint.MaxAccuracyMeters)]
+    double? AccuracyMeters,
+
+    [Range(LiveLocation.MinPeriodSeconds, LiveLocation.MaxPeriodSeconds)]
+    int? LivePeriodSeconds
+);
+
+public sealed record UpdateLiveLocationRequest(
+    [Required, Range(-GeoPoint.MaxLatitude, GeoPoint.MaxLatitude)]
+    double? Latitude,
+
+    [Required, Range(-GeoPoint.MaxLongitude, GeoPoint.MaxLongitude)]
+    double? Longitude,
+
+    [Range(0, GeoPoint.MaxAccuracyMeters)]
+    double? AccuracyMeters
 );

@@ -12,6 +12,9 @@ export const limits = {
   imageMaxBytes: 10 * 1024 * 1024, // Client only: a larger photo is compressed to fileMaxBytes before upload
   attachmentsMax: 10, // MessageContent.MaxAttachments
   voiceMaxSeconds: 300, // Attachment.MaxVoiceDurationSeconds
+  geoAccuracyMaxMeters: 100_000, // GeoPoint.MaxAccuracyMeters
+  // LiveLocation.MinPeriodSeconds .. LiveLocation.MaxPeriodSeconds
+  livePeriodsSeconds: [15 * 60, 60 * 60, 8 * 60 * 60],
   searchMin: 2, // SearchUsersQuery.MinLength; the max is emailMax
   pageSize: 50,
 }

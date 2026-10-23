@@ -17,6 +17,8 @@ public class Message : AggregateRoot
         MessageContent content,
         long? replyToSeq)
     {
+        var now = DateTime.UtcNow;
+
         var message = new Message
         {
             Id = Guid.NewGuid(),
@@ -24,8 +26,10 @@ public class Message : AggregateRoot
             Seq = seq,
             AuthorId = authorId,
             Text = content.Text,
+            Location = content.Location,
+            LiveUntil = now + content.LivePeriod,
             ReplyToSeq = replyToSeq,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now
         };
 
         message._attachments.AddRange(content.Attachments);
@@ -49,6 +53,13 @@ public class Message : AggregateRoot
     public MessageText? Text { get; private set; }
 
     public IReadOnlyList<Attachment> Attachments => _attachments;
+
+    // Where the author was when sending. For a live location it is only the first point:
+    // later ones go to LiveLocation, so the message itself never changes.
+    public GeoPoint? Location { get; private set; }
+
+    // Live locations only: when the broadcast is planned to end.
+    public DateTime? LiveUntil { get; private set; }
 
     public long? ReplyToSeq { get; private set; }
 
